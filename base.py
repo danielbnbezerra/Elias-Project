@@ -123,11 +123,11 @@ class Application(ctk.CTk):
     def open_toplevel(self):
         if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
             if self.model_option.get() == self.models[0]:
-                self.toplevel_window = LHCModel()
+                self.toplevel_window = LHCModelWindow()
             if self.model_option.get() == self.models[1]:
-                self.toplevel_window = NBEATSModel()
+                self.toplevel_window = NBEATSModelWindow()
                 self.toplevel_window.print_grid()
             if self.model_option.get() == self.models[2]:
-                self.toplevel_window = NHiTSModel()
+                self.toplevel_window = NHiTSModelWindow()
         else:
             self.toplevel_window.focus()
