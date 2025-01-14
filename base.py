@@ -3,7 +3,6 @@ import customtkinter as ctk
 from functions import *
 from classes import *
 
-
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
