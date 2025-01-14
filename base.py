@@ -3,7 +3,7 @@ import customtkinter as ctk
 from functions import *
 from classes import *
 
-class App(ctk.CTk):
+class Application(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Projeto Elias")
