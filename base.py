@@ -18,7 +18,7 @@ class Application(ctk.CTk):
         self.toplevel_window = None
 
     # Configurações iniciais
-        ctk.set_appearance_mode("system")  # "light", "dark", "system"
+        ctk.set_appearance_mode("light")  # "light", "dark", "system"
         ctk.set_default_color_theme("dark-blue")  # Temas: "blue", "green", "dark-blue"
 
     # Configuração inicial do layout
@@ -126,7 +126,6 @@ class Application(ctk.CTk):
                 self.toplevel_window = LHCModelWindow()
             if self.model_option.get() == self.models[1]:
                 self.toplevel_window = NBEATSModelWindow()
-                self.toplevel_window.print_grid()
             if self.model_option.get() == self.models[2]:
                 self.toplevel_window = NHiTSModelWindow()
         else:
