@@ -76,7 +76,7 @@ class BasicWindow(ctk.CTkToplevel):
         screen_height = self.winfo_screenheight()
         x = round((screen_width - window_width)//2,-1)
         y = round((screen_height - window_height)//2,-1)
-        print(window_width,window_height,screen_width,screen_height,x,y)
+        # print(window_width,window_height,screen_width,screen_height,x,y)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
     def bring_fwd_window(self):
@@ -85,12 +85,16 @@ class BasicWindow(ctk.CTkToplevel):
     def bottom_page_buttons(self):
         columns,rows= self.grid_size()  # Get current grid size
         print(rows,columns)
-        # "Limpar" button at last row, first column
+
+        # "Limpar"
         self.clear_button = ctk.CTkButton(self, text="Limpar")
         self.clear_button.grid(row=rows, column=0, pady=10)
-        # "Confirmar" button at last row, last column
+        Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
+
+        # "Confirmar"
         self.confirm_button = ctk.CTkButton(self, text="Confirmar")
         self.confirm_button.grid(row=rows, column=columns-1, pady=10)
+        Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
 
 
 class LHCModelWindow(BasicWindow):
@@ -119,14 +123,13 @@ class NModelWindow(BasicWindow):
         # Output Chunk Length
         self.label_output_chunck_length = ctk.CTkLabel(self, text="Output Chunck Length:", font=("Arial", 14))
         self.label_output_chunck_length.grid(row=1, column=0, padx=5)
-        self.entry_output_chunck_length = ctk.CTkEntry(self, placeholder_text="Tamanho output (número)",
-                                                       font=("Arial", 11))
+        self.entry_output_chunck_length = ctk.CTkEntry(self, font=("Arial", 11))
         self.entry_output_chunck_length.grid(row=1, column=1, padx=5)
 
         # Number of Stacks
         self.label_num_stacks = ctk.CTkLabel(self, text="Number of Stacks:", font=("Arial", 14))
         self.label_num_stacks.grid(row=2, column=0, padx=5, pady=20)
-        self.entry_num_stacks = ctk.CTkEntry(self, placeholder_text="Qtd Stacks (número)", font=("Arial", 11))
+        self.entry_num_stacks = ctk.CTkEntry(self, font=("Arial", 11))
         self.entry_num_stacks.grid(row=2, column=1, padx=5, pady=20)
 
         # Number of Blocks
@@ -188,10 +191,11 @@ class NModelWindow(BasicWindow):
 
         self.bottom_page_buttons()
 
-        Tooltip(self.label_input_chunck_length,text="Tamanho da entrada de dados (número).")
-        Tooltip(self.label_output_chunck_length, text="Tamanho da saída de dados (número).")
-        Tooltip(self.label_input_chunck_length, text="Tamanho da entrada de dados (número).")
-        Tooltip(self.label_input_chunck_length, text="Tamanho da entrada de dados (número).")
+        Tooltip(self.label_input_chunck_length,text="Tamanho da entrada de dados(número).")
+        Tooltip(self.label_output_chunck_length, text="Tamanho da saída de dados(número).")
+        Tooltip(self.label_num_stacks, text="Quantidade de Stacks que constituem o modelo(número).")
+        Tooltip(self.label_num_blocks, text="Quantidade de blocos que constituem uma Stack(número).")
+        Tooltip(self.label_num_layers, text="Quantidade de camadas totalmente conectadas que precedem a camada final e que compõem cada bloco de cada Stack(número).")
 
 
 class NBEATSModelWindow(NModelWindow):
