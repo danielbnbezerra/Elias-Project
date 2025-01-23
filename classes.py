@@ -1,4 +1,6 @@
 import tkinter as tk
+from doctest import master
+
 import customtkinter as ctk
 
 class Tooltip:
@@ -61,6 +63,10 @@ class BasicWindow(ctk.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.grid_propagate(True)
+        self.option_frame = ctk.CTkFrame(self, fg_color="lightblue")
+        self.option_frame.place(x=0, y=0, relwidth=0.3, relheight=1)
+        self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="red")
+        self.hiperparameter_frame.place(relx=0.3, y=0, relwidth=0.7, relheight=1)
 
     def print_window_screen(self):
         window_width = self.winfo_width()
@@ -70,29 +76,30 @@ class BasicWindow(ctk.CTkToplevel):
         print(window_width, window_height, screen_width, screen_height)
 
     def centralize_window(self):
-        window_width = round(self.winfo_width(),-1)
-        window_height = round(self.winfo_height(),-1)
+        # window_width = round(self.winfo_width(),-1)
+        # window_height = round(self.winfo_height(),-1)
+        window_width = 1180
+        window_height = 390
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         x = round((screen_width - window_width)//2,-1)
         y = round((screen_height - window_height)//2,-1)
-        # print(window_width,window_height,screen_width,screen_height,x,y)
+        print(window_width,window_height,screen_width,screen_height,x,y)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
     def bring_fwd_window(self):
         self.attributes("-topmost", True)
 
     def bottom_page_buttons(self):
-        columns,rows= self.grid_size()  # Get current grid size
-        print(rows,columns)
+        columns,rows= self.hiperparameter_frame.grid_size()  # Get current grid size
 
         # "Limpar"
-        self.clear_button = ctk.CTkButton(self, text="Limpar")
+        self.clear_button = ctk.CTkButton(master=self.hiperparameter_frame, text="Limpar")
         self.clear_button.grid(row=rows, column=0, pady=10)
         Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
 
         # "Confirmar"
-        self.confirm_button = ctk.CTkButton(self, text="Confirmar")
+        self.confirm_button = ctk.CTkButton(master=self.hiperparameter_frame, text="Confirmar")
         self.confirm_button.grid(row=rows, column=columns-1, pady=10)
         Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
 
@@ -106,86 +113,80 @@ class NModelWindow(BasicWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        option_frame= ctk.CTkFrame(self,fg_color="lightblue")
-        option_frame.place(x=0,y=0,relwidth=0.3,relheight=1)
-        hiperparameter_frame = ctk.CTkFrame(self,fg_color="red")
-        hiperparameter_frame.place(relx=0.3,y=0,relwidth=0.7,relheight=1)
-
         # Random State
         self.random_state = 42
 
         # Input Chunk Length
-        self.label_input_chunck_length = ctk.CTkLabel(self, text="Input Chunck Length:", font=("Arial", 14))
+        self.label_input_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Input Chunck Length:", font=("Arial", 14))
         self.label_input_chunck_length.grid(row=0, column=0, padx=5)
-        self.entry_input_chunck_length = ctk.CTkEntry(self, font=("Arial", 11))
+        self.entry_input_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
         self.entry_input_chunck_length.grid(row=0, column=1, padx=5)
 
         # Output Chunk Length
-        self.label_output_chunck_length = ctk.CTkLabel(self, text="Output Chunck Length:", font=("Arial", 14))
+        self.label_output_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Output Chunck Length:", font=("Arial", 14))
         self.label_output_chunck_length.grid(row=1, column=0, padx=5)
-        self.entry_output_chunck_length = ctk.CTkEntry(self, font=("Arial", 11))
+        self.entry_output_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
         self.entry_output_chunck_length.grid(row=1, column=1, padx=5)
 
         # Number of Stacks
-        self.label_num_stacks = ctk.CTkLabel(self, text="Number of Stacks:", font=("Arial", 14))
+        self.label_num_stacks = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Stacks:", font=("Arial", 14))
         self.label_num_stacks.grid(row=2, column=0, padx=5, pady=20)
-        self.entry_num_stacks = ctk.CTkEntry(self, font=("Arial", 11))
+        self.entry_num_stacks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
         self.entry_num_stacks.grid(row=2, column=1, padx=5, pady=20)
 
         # Number of Blocks
-        self.label_num_blocks = ctk.CTkLabel(self, text="Number of Blocks:", font=("Arial", 14))
+        self.label_num_blocks = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Blocks:", font=("Arial", 14))
         self.label_num_blocks.grid(row=3, column=0, padx=5, pady=20)
-        self.entry_num_blocks = ctk.CTkEntry(self, placeholder_text="Qtd Blocos (número)", font=("Arial", 11))
+        self.entry_num_blocks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
         self.entry_num_blocks.grid(row=3, column=1, padx=5, pady=20)
 
         # Number of Layers
-        self.label_num_layers = ctk.CTkLabel(self, text="Number of Layers:", font=("Arial", 14))
+        self.label_num_layers = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Layers:", font=("Arial", 14))
         self.label_num_layers.grid(row=4, column=0, padx=5, pady=20)
-        self.entry_num_layers = ctk.CTkEntry(self, placeholder_text="Qtd Camadas (número)", font=("Arial", 11))
+        self.entry_num_layers = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
         self.entry_num_layers.grid(row=4, column=1, padx=5, pady=20)
 
         # Layer Width
-        self.label_layer_width = ctk.CTkLabel(self, text="Layer Width:", font=("Arial", 14))
+        self.label_layer_width = ctk.CTkLabel(master=self.hiperparameter_frame, text="Layer Width:", font=("Arial", 14))
         self.label_layer_width.grid(row=0, column=2, padx=5, pady=20)
-        self.entry_layer_width = ctk.CTkEntry(self, placeholder_text="Qtd Neurônios (União[números, Lista[números]])",
-                                              font=("Arial", 11))
+        self.entry_layer_width = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
         self.entry_layer_width.grid(row=0, column=3, padx=5, pady=20)
 
         # Dropout
-        self.label_dropout = ctk.CTkLabel(self, text="Dropout:", font=("Arial", 14))
+        self.label_dropout = ctk.CTkLabel(master=self.hiperparameter_frame, text="Dropout:", font=("Arial", 14))
         self.label_dropout.grid(row=1, column=2, padx=5, pady=20)
-        self.entry_dropout = ctk.CTkEntry(self, placeholder_text="Qtd Dropout (número)", font=("Arial", 11))
+        self.entry_dropout = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
         self.entry_dropout.grid(row=1, column=3, padx=5, pady=20)
 
         # Activation
-        self.label_activation = ctk.CTkLabel(self, text="Activation:", font=("Arial", 14))
+        self.label_activation = ctk.CTkLabel(master=self.hiperparameter_frame, text="Activation:", font=("Arial", 14))
         self.label_activation.grid(row=2, column=2, padx=5, pady=20)
         self.activation_functions = ['ReLU', 'RReLU', 'PReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid']
-        self.option_activation = ctk.CTkOptionMenu(self, values=self.activation_functions)
-        self.option_activation.set("Função Ativação")
+        self.option_activation = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.activation_functions)
+        self.option_activation.set("Selecione")
         self.option_activation.grid(row=2, column=3, padx=5, pady=20)
 
         # Batch Size
-        self.label_batch_size = ctk.CTkLabel(self, text="Batch Size:", font=("Arial", 14))
+        self.label_batch_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Batch Size:", font=("Arial", 14))
         self.label_batch_size.grid(row=3, column=2, padx=5, pady=20)
         self.batch_sizes = ['16', '32', '64', '128', '256', '512', '1024']
-        self.option_batch_size = ctk.CTkOptionMenu(self, values=self.batch_sizes)
-        self.option_batch_size.set("Selecione um valor")
+        self.option_batch_size = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.batch_sizes)
+        self.option_batch_size.set("Selecione")
         self.option_batch_size.grid(row=3, column=3, padx=5, pady=20)
 
         # Number of Epochs
-        self.label_n_epochs = ctk.CTkLabel(self, text="Number Epochs:", font=("Arial", 14))
+        self.label_n_epochs = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Epochs:", font=("Arial", 14))
         self.label_n_epochs.grid(row=4, column=2, padx=5, pady=20)
         self.n_epochs = ['100', '200', '300', '400', '500', '1000']
-        self.option_n_epoch = ctk.CTkComboBox(self, values=self.n_epochs)
+        self.option_n_epoch = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_epochs)
         self.option_n_epoch.set("Selecione/Digite")
         self.option_n_epoch.grid(row=4, column=3, padx=5, pady=20)
 
         #Save Checkpoints
-        self.label_save_checkpoint = ctk.CTkLabel(self, text="Save Checkpoint:", font=("Arial", 14))
+        self.label_save_checkpoint = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoint:", font=("Arial", 14))
         self.label_save_checkpoint.grid(row=0, column=4, padx=5, pady=20)
         self.boolean_options = ['True', 'False']
-        self.option_save_checkpoint = ctk.CTkOptionMenu(self, values=self.boolean_options)
+        self.option_save_checkpoint = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options)
         self.option_save_checkpoint.set("Selecionar Opção")
         self.option_save_checkpoint.grid(row=0, column=5, padx=5, pady=20)
 
@@ -196,6 +197,15 @@ class NModelWindow(BasicWindow):
         Tooltip(self.label_num_stacks, text="Quantidade de Stacks que constituem o modelo(número).")
         Tooltip(self.label_num_blocks, text="Quantidade de blocos que constituem uma Stack(número).")
         Tooltip(self.label_num_layers, text="Quantidade de camadas totalmente conectadas que precedem a camada final e que compõem cada bloco de cada Stack(número).")
+        Tooltip(self.label_layer_width, text="Determina o número de neurônios que compõem cada camada totalmente conectada em cada bloco de cada pilha. \n "
+                                             "Se uma lista for passada, ela deve ter um comprimento igual a num_stacks, e cada entrada dessa lista corresponderá \n"
+                                             "à largura das camadas da pilha correspondente. Se um número inteiro for passado, todas as pilhas terão blocos com \n"
+                                             "camadas totalmente conectadas da mesma largura. (União[números, Lista[números]])")
+        Tooltip(self.label_dropout, text="A probabilidade de dropout a ser utilizada nas camadas totalmente conectadas.")
+        Tooltip(self.label_activation, text="Função de ativação utilizada no modelo.")
+        Tooltip(self.label_batch_size, text="Número de séries temporais (sequências de entrada e saída) utilizadas em cada passagem de treinamento.")
+        Tooltip(self.label_n_epochs, text="Número de épocas em cada rodada de treinamento do modelo.")
+        Tooltip(self.label_save_checkpoint, text="Define se o modelo não treinado e os checkpoints do treinamento serão salvos automaticamente.")
 
 
 class NBEATSModelWindow(NModelWindow):
@@ -203,9 +213,8 @@ class NBEATSModelWindow(NModelWindow):
         super().__init__(*args, **kwargs)
         self.title("N-BEATS Model")
 
-        self.update_idletasks()
-        self.update()
-        self.print_window_screen()
+        # self.update_idletasks()
+        # self.update()
         self.centralize_window()
         self.bring_fwd_window()
 
@@ -214,8 +223,7 @@ class NHiTSModelWindow(NModelWindow):
         super().__init__(*args, **kwargs)
         self.title("N-HiTS Model")
 
-        self.update_idletasks()
-        self.update()
-        self.print_window_screen()
+        # self.update_idletasks()
+        # self.update()
         self.centralize_window()
         self.bring_fwd_window()
