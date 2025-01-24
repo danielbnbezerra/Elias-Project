@@ -64,9 +64,32 @@ class BasicWindow(ctk.CTkToplevel):
         super().__init__(*args, **kwargs)
         self.grid_propagate(True)
         self.option_frame = ctk.CTkFrame(self, fg_color="lightblue")
-        self.option_frame.place(x=0, y=0, relwidth=0.3, relheight=1)
+        self.option_frame.place(x=0, y=0, relwidth=0.2, relheight=1)
         self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="red")
-        self.hiperparameter_frame.place(relx=0.3, y=0, relwidth=0.7, relheight=1)
+        self.hiperparameter_frame.place(relx=0.2, y=0, relwidth=0.8, relheight=1)
+
+        # Preset Configuration Buttons
+        self.label_confg_buttons= ctk.CTkLabel(master=self.option_frame,
+                                               text="Configuração:",
+                                               font= ("Arial", 14))
+        self.label_confg_buttons.grid(row=0, column=0, padx=5, pady=5)
+        self.confgs_options = ["Opção 1", "Opção 2", "Opção 3", "Manual"]
+        self.confgs_options = ctk.CTkOptionMenu(master=self.option_frame, values=self.confgs_options, command=self.confg_event)
+        self.confgs_options.set("Selecione")
+        self.confgs_options.grid(row=1, column=0, padx=5, pady=5)
+        Tooltip(self.label_confg_buttons, text="Selecione uma configuração predeterminada\n "
+                                               "para o modelo ou edite manualmente os \n"
+                                               "parâmetros:")
+
+    def confg_event(self, choice): # A DEFINIR
+        # if choice == 'Opção 1':
+        #
+        # if choice == 'Opção 2':
+        #
+        # if choice == 'Opção 3':
+        #
+        # if choice == 'Manual':
+        return choice
 
     def print_window_screen(self):
         window_width = self.winfo_width()
@@ -78,13 +101,12 @@ class BasicWindow(ctk.CTkToplevel):
     def centralize_window(self):
         # window_width = round(self.winfo_width(),-1)
         # window_height = round(self.winfo_height(),-1)
-        window_width = 1180
-        window_height = 390
+        window_width = 1040
+        window_height = 240
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         x = round((screen_width - window_width)//2,-1)
         y = round((screen_height - window_height)//2,-1)
-        print(window_width,window_height,screen_width,screen_height,x,y)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
     def bring_fwd_window(self):
@@ -130,65 +152,65 @@ class NModelWindow(BasicWindow):
 
         # Number of Stacks
         self.label_num_stacks = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Stacks:", font=("Arial", 14))
-        self.label_num_stacks.grid(row=2, column=0, padx=5, pady=20)
+        self.label_num_stacks.grid(row=2, column=0, padx=5, pady=5)
         self.entry_num_stacks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
-        self.entry_num_stacks.grid(row=2, column=1, padx=5, pady=20)
+        self.entry_num_stacks.grid(row=2, column=1, padx=5, pady=5)
 
         # Number of Blocks
         self.label_num_blocks = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Blocks:", font=("Arial", 14))
-        self.label_num_blocks.grid(row=3, column=0, padx=5, pady=20)
+        self.label_num_blocks.grid(row=3, column=0, padx=5, pady=5)
         self.entry_num_blocks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
-        self.entry_num_blocks.grid(row=3, column=1, padx=5, pady=20)
+        self.entry_num_blocks.grid(row=3, column=1, padx=5, pady=5)
 
         # Number of Layers
         self.label_num_layers = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Layers:", font=("Arial", 14))
-        self.label_num_layers.grid(row=4, column=0, padx=5, pady=20)
+        self.label_num_layers.grid(row=4, column=0, padx=5, pady=5)
         self.entry_num_layers = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
-        self.entry_num_layers.grid(row=4, column=1, padx=5, pady=20)
+        self.entry_num_layers.grid(row=4, column=1, padx=5, pady=5)
 
         # Layer Width
         self.label_layer_width = ctk.CTkLabel(master=self.hiperparameter_frame, text="Layer Width:", font=("Arial", 14))
-        self.label_layer_width.grid(row=0, column=2, padx=5, pady=20)
+        self.label_layer_width.grid(row=0, column=2, padx=5, pady=5)
         self.entry_layer_width = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
-        self.entry_layer_width.grid(row=0, column=3, padx=5, pady=20)
+        self.entry_layer_width.grid(row=0, column=3, padx=5, pady=5)
 
         # Dropout
         self.label_dropout = ctk.CTkLabel(master=self.hiperparameter_frame, text="Dropout:", font=("Arial", 14))
-        self.label_dropout.grid(row=1, column=2, padx=5, pady=20)
+        self.label_dropout.grid(row=1, column=2, padx=5, pady=5)
         self.entry_dropout = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
-        self.entry_dropout.grid(row=1, column=3, padx=5, pady=20)
+        self.entry_dropout.grid(row=1, column=3, padx=5, pady=5)
 
         # Activation
         self.label_activation = ctk.CTkLabel(master=self.hiperparameter_frame, text="Activation:", font=("Arial", 14))
-        self.label_activation.grid(row=2, column=2, padx=5, pady=20)
+        self.label_activation.grid(row=2, column=2, padx=5, pady=5)
         self.activation_functions = ['ReLU', 'RReLU', 'PReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid']
         self.option_activation = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.activation_functions)
         self.option_activation.set("Selecione")
-        self.option_activation.grid(row=2, column=3, padx=5, pady=20)
+        self.option_activation.grid(row=2, column=3, padx=5, pady=5)
 
         # Batch Size
         self.label_batch_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Batch Size:", font=("Arial", 14))
-        self.label_batch_size.grid(row=3, column=2, padx=5, pady=20)
+        self.label_batch_size.grid(row=3, column=2, padx=5, pady=5)
         self.batch_sizes = ['16', '32', '64', '128', '256', '512', '1024']
         self.option_batch_size = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.batch_sizes)
         self.option_batch_size.set("Selecione")
-        self.option_batch_size.grid(row=3, column=3, padx=5, pady=20)
+        self.option_batch_size.grid(row=3, column=3, padx=5, pady=5)
 
         # Number of Epochs
         self.label_n_epochs = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Epochs:", font=("Arial", 14))
-        self.label_n_epochs.grid(row=4, column=2, padx=5, pady=20)
+        self.label_n_epochs.grid(row=4, column=2, padx=5, pady=5)
         self.n_epochs = ['100', '200', '300', '400', '500', '1000']
         self.option_n_epoch = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_epochs)
         self.option_n_epoch.set("Selecione/Digite")
-        self.option_n_epoch.grid(row=4, column=3, padx=5, pady=20)
+        self.option_n_epoch.grid(row=4, column=3, padx=5, pady=5)
 
         #Save Checkpoints
         self.label_save_checkpoint = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoint:", font=("Arial", 14))
-        self.label_save_checkpoint.grid(row=0, column=4, padx=5, pady=20)
+        self.label_save_checkpoint.grid(row=0, column=4, padx=5, pady=5)
         self.boolean_options = ['True', 'False']
         self.option_save_checkpoint = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options)
         self.option_save_checkpoint.set("Selecionar Opção")
-        self.option_save_checkpoint.grid(row=0, column=5, padx=5, pady=20)
+        self.option_save_checkpoint.grid(row=0, column=5, padx=5, pady=5)
 
         self.bottom_page_buttons()
 
