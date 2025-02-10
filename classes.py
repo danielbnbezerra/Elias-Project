@@ -63,9 +63,9 @@ class BasicWindow(ctk.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.grid_propagate(True)
-        self.option_frame = ctk.CTkFrame(self, fg_color="lightblue")
+        self.option_frame = ctk.CTkFrame(self, fg_color="#DDDDDD")
         self.option_frame.place(x=0, y=0, relwidth=0.2, relheight=1)
-        self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="red")
+        self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
         self.hiperparameter_frame.place(relx=0.2, y=0, relwidth=0.8, relheight=1)
 
         # Preset Configuration Buttons
