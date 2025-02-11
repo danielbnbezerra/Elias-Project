@@ -68,7 +68,7 @@ class BasicWindow(ctk.CTkToplevel):
         self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
         self.hiperparameter_frame.place(relx=0.2, y=0, relwidth=0.8, relheight=1)
 
-        # Preset Configuration Buttons
+        #Configuração
         self.label_confg_buttons= ctk.CTkLabel(master=self.option_frame,
                                                text="Configuração:",
                                                font= ("Arial", 14))
@@ -77,19 +77,20 @@ class BasicWindow(ctk.CTkToplevel):
         self.confgs_options = ctk.CTkOptionMenu(master=self.option_frame, values=self.confgs_options, command=self.confg_event)
         self.confgs_options.set("Selecione")
         self.confgs_options.grid(row=1, column=0, padx=5, pady=5)
+
+        #Limpar
+        self.clear_button = ctk.CTkButton(master=self.option_frame, text="Limpar", command=self.clean_parameters)
+        self.clear_button.grid(row=2, column=0, pady=10)
+
+        #Confirmar
+        self.confirm_button = ctk.CTkButton(master=self.option_frame, text="Confirmar")
+        self.confirm_button.grid(row=3, column=0, pady=10)
+
         Tooltip(self.label_confg_buttons, text="Selecione uma configuração predeterminada\n "
                                                "para o modelo ou edite manualmente os \n"
                                                "parâmetros:")
-
-    def confg_event(self, choice): # A DEFINIR
-        # if choice == 'Opção 1':
-        #
-        # if choice == 'Opção 2':
-        #
-        # if choice == 'Opção 3':
-        #
-        # if choice == 'Manual':
-        return choice
+        Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
+        Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
 
     def print_window_screen(self):
         window_width = self.winfo_width()
@@ -112,24 +113,47 @@ class BasicWindow(ctk.CTkToplevel):
     def bring_fwd_window(self):
         self.attributes("-topmost", True)
 
-    def bottom_page_buttons(self):
-        columns,rows= self.hiperparameter_frame.grid_size()  # Get current grid size
-
-        # "Limpar"
-        self.clear_button = ctk.CTkButton(master=self.hiperparameter_frame, text="Limpar")
-        self.clear_button.grid(row=rows, column=0, pady=10)
-        Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
-
-        # "Confirmar"
-        self.confirm_button = ctk.CTkButton(master=self.hiperparameter_frame, text="Confirmar")
-        self.confirm_button.grid(row=rows, column=columns-1, pady=10)
-        Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
+    # def bottom_page_buttons(self):
+    #     columns,rows= self.hiperparameter_frame.grid_size()  # Get current grid size
+    #
+    #     # "Limpar"
+    #     self.clear_button = ctk.CTkButton(master=self.hiperparameter_frame, text="Limpar")
+    #     self.clear_button.grid(row=rows, column=0, pady=10)
+    #     Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
+    #
+    #     # "Confirmar"
+    #     self.confirm_button = ctk.CTkButton(master=self.hiperparameter_frame, text="Confirmar")
+    #     self.confirm_button.grid(row=rows, column=columns-1, pady=10)
+    #     Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
 
 
 class LHCModelWindow(BasicWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("LHC Model")
+
+    # def clean_parameters(self):
+    #     self.entry_input_chunck_length.delete(0,"end")
+    #     self.entry_output_chunck_length.delete(0,"end")
+    #     self.entry_num_stacks.delete(0,"end")
+    #     self.entry_num_blocks.delete(0,"end")
+    #     self.entry_num_layers.delete(0,"end")
+    #     self.entry_layer_width.delete(0,"end")
+    #     self.entry_dropout.delete(0,"end")
+    #     self.option_activation.set("Selecione")
+    #     self.option_batch_size.set("Selecione")
+    #     self.option_n_epoch.set("Selecione/Digite")
+    #     self.option_save_checkpoint.set("Selecione")
+
+    # def confg_event(self, choice): # A DEFINIR
+    #     if choice == 'Opção 1':
+    #
+    #     if choice == 'Opção 2':
+    #
+    #     if choice == 'Opção 3':
+    #
+    #     if choice == 'Manual':
+    #     return choice
 
 class NModelWindow(BasicWindow):
     def __init__(self, *args, **kwargs):
@@ -141,50 +165,50 @@ class NModelWindow(BasicWindow):
         # Input Chunk Length
         self.label_input_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Input Chunck Length:", font=("Arial", 14))
         self.label_input_chunck_length.grid(row=0, column=0, padx=5)
-        self.entry_input_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
+        self.entry_input_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_input_chunck_length.grid(row=0, column=1, padx=5)
 
         # Output Chunk Length
         self.label_output_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Output Chunck Length:", font=("Arial", 14))
         self.label_output_chunck_length.grid(row=1, column=0, padx=5)
-        self.entry_output_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
+        self.entry_output_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_output_chunck_length.grid(row=1, column=1, padx=5)
 
         # Number of Stacks
         self.label_num_stacks = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Stacks:", font=("Arial", 14))
         self.label_num_stacks.grid(row=2, column=0, padx=5, pady=5)
-        self.entry_num_stacks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
+        self.entry_num_stacks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_num_stacks.grid(row=2, column=1, padx=5, pady=5)
 
         # Number of Blocks
         self.label_num_blocks = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Blocks:", font=("Arial", 14))
         self.label_num_blocks.grid(row=3, column=0, padx=5, pady=5)
-        self.entry_num_blocks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
+        self.entry_num_blocks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_num_blocks.grid(row=3, column=1, padx=5, pady=5)
 
         # Number of Layers
         self.label_num_layers = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Layers:", font=("Arial", 14))
         self.label_num_layers.grid(row=4, column=0, padx=5, pady=5)
-        self.entry_num_layers = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
+        self.entry_num_layers = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_num_layers.grid(row=4, column=1, padx=5, pady=5)
 
         # Layer Width
         self.label_layer_width = ctk.CTkLabel(master=self.hiperparameter_frame, text="Layer Width:", font=("Arial", 14))
         self.label_layer_width.grid(row=0, column=2, padx=5, pady=5)
-        self.entry_layer_width = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
+        self.entry_layer_width = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_layer_width.grid(row=0, column=3, padx=5, pady=5)
 
         # Dropout
         self.label_dropout = ctk.CTkLabel(master=self.hiperparameter_frame, text="Dropout:", font=("Arial", 14))
         self.label_dropout.grid(row=1, column=2, padx=5, pady=5)
-        self.entry_dropout = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11))
+        self.entry_dropout = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_dropout.grid(row=1, column=3, padx=5, pady=5)
 
         # Activation
         self.label_activation = ctk.CTkLabel(master=self.hiperparameter_frame, text="Activation:", font=("Arial", 14))
         self.label_activation.grid(row=2, column=2, padx=5, pady=5)
         self.activation_functions = ['ReLU', 'RReLU', 'PReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid']
-        self.option_activation = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.activation_functions)
+        self.option_activation = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.activation_functions, state="disabled")
         self.option_activation.set("Selecione")
         self.option_activation.grid(row=2, column=3, padx=5, pady=5)
 
@@ -192,7 +216,7 @@ class NModelWindow(BasicWindow):
         self.label_batch_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Batch Size:", font=("Arial", 14))
         self.label_batch_size.grid(row=3, column=2, padx=5, pady=5)
         self.batch_sizes = ['16', '32', '64', '128', '256', '512', '1024']
-        self.option_batch_size = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.batch_sizes)
+        self.option_batch_size = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.batch_sizes, state="disabled")
         self.option_batch_size.set("Selecione")
         self.option_batch_size.grid(row=3, column=3, padx=5, pady=5)
 
@@ -200,7 +224,7 @@ class NModelWindow(BasicWindow):
         self.label_n_epochs = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Epochs:", font=("Arial", 14))
         self.label_n_epochs.grid(row=4, column=2, padx=5, pady=5)
         self.n_epochs = ['100', '200', '300', '400', '500', '1000']
-        self.option_n_epoch = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_epochs)
+        self.option_n_epoch = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_epochs, state="disabled")
         self.option_n_epoch.set("Selecione/Digite")
         self.option_n_epoch.grid(row=4, column=3, padx=5, pady=5)
 
@@ -208,11 +232,11 @@ class NModelWindow(BasicWindow):
         self.label_save_checkpoint = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoint:", font=("Arial", 14))
         self.label_save_checkpoint.grid(row=0, column=4, padx=5, pady=5)
         self.boolean_options = ['True', 'False']
-        self.option_save_checkpoint = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options)
-        self.option_save_checkpoint.set("Selecionar Opção")
+        self.option_save_checkpoint = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options, state="disabled")
+        self.option_save_checkpoint.set("Selecione")
         self.option_save_checkpoint.grid(row=0, column=5, padx=5, pady=5)
 
-        self.bottom_page_buttons()
+        # self.bottom_page_buttons()
 
         Tooltip(self.label_input_chunck_length,text="Tamanho da entrada de dados(número).")
         Tooltip(self.label_output_chunck_length, text="Tamanho da saída de dados(número).")
@@ -234,11 +258,104 @@ class NBEATSModelWindow(NModelWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("N-BEATS Model")
-
         # self.update_idletasks()
         # self.update()
         self.centralize_window()
         self.bring_fwd_window()
+
+    def disable_parameters(self):
+        self.entry_input_chunck_length.configure(state="disabled")
+        self.entry_output_chunck_length.configure(state="disabled")
+        self.entry_num_stacks.configure(state="disabled")
+        self.entry_num_blocks.configure(state="disabled")
+        self.entry_num_layers.configure(state="disabled")
+        self.entry_layer_width.configure(state="disabled")
+        self.entry_dropout.configure(state="disabled")
+        self.option_activation.configure(state="disabled")
+        self.option_batch_size.configure(state="disabled")
+        self.option_n_epoch.configure(state="disabled")
+        self.option_save_checkpoint.configure(state="disabled")
+
+    def enable_parameters(self):
+        self.entry_input_chunck_length.configure(state="normal")
+        self.entry_output_chunck_length.configure(state="normal")
+        self.entry_num_stacks.configure(state="normal")
+        self.entry_num_blocks.configure(state="normal")
+        self.entry_num_layers.configure(state="normal")
+        self.entry_layer_width.configure(state="normal")
+        self.entry_dropout.configure(state="normal")
+        self.option_activation.configure(state="normal")
+        self.option_batch_size.configure(state="normal")
+        self.option_n_epoch.configure(state="normal")
+        self.option_save_checkpoint.configure(state="normal")
+
+    def confg_event(self, choice): # A DEFINIR
+        if choice == 'Opção 1':
+            self.enable_parameters()
+            self.clean_parameters()
+            self.entry_input_chunck_length.insert(0,"32")
+            self.entry_output_chunck_length.insert(0,"21")
+            self.entry_num_stacks.insert(0,"3")
+            self.entry_num_blocks.insert(0,"4")
+            self.entry_num_layers.insert(0,"3")
+            self.entry_layer_width.insert(0,"5")
+            self.entry_dropout.insert(0,"2")
+            self.option_activation.set("ReLU")
+            self.option_batch_size.set("16")
+            self.option_n_epoch.set("500")
+            self.option_save_checkpoint.set("True")
+            self.disable_parameters()
+
+        if choice == 'Opção 2':
+            self.enable_parameters()
+            self.clean_parameters()
+            self.entry_input_chunck_length.insert(0, "32")
+            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_num_stacks.insert(0, "3")
+            self.entry_num_blocks.insert(0, "4")
+            self.entry_num_layers.insert(0, "3")
+            self.entry_layer_width.insert(0, "5")
+            self.entry_dropout.insert(0, "2")
+            self.option_activation.set("ReLU")
+            self.option_batch_size.set("16")
+            self.option_n_epoch.set("750")
+            self.option_save_checkpoint.set("True")
+            self.disable_parameters()
+
+        if choice == 'Opção 3':
+            self.enable_parameters()
+            self.clean_parameters()
+            self.entry_input_chunck_length.insert(0, "32")
+            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_num_stacks.insert(0, "3")
+            self.entry_num_blocks.insert(0, "4")
+            self.entry_num_layers.insert(0, "3")
+            self.entry_layer_width.insert(0, "5")
+            self.entry_dropout.insert(0, "2")
+            self.option_activation.set("ReLU")
+            self.option_batch_size.set("16")
+            self.option_n_epoch.set("1000")
+            self.option_save_checkpoint.set("True")
+            self.disable_parameters()
+
+        if choice == 'Manual':
+            self.enable_parameters()
+            self.clean_parameters()
+
+    def clean_parameters(self):
+        self.entry_input_chunck_length.delete(0,"end")
+        self.entry_output_chunck_length.delete(0,"end")
+        self.entry_num_stacks.delete(0,"end")
+        self.entry_num_blocks.delete(0,"end")
+        self.entry_num_layers.delete(0,"end")
+        self.entry_layer_width.delete(0,"end")
+        self.entry_dropout.delete(0,"end")
+        self.option_activation.set("Selecione")
+        self.option_batch_size.set("Selecione")
+        self.option_n_epoch.set("Selecione/Digite")
+        self.option_save_checkpoint.set("Selecione")
+
+
 
 class NHiTSModelWindow(NModelWindow):
     def __init__(self, *args, **kwargs):
@@ -249,3 +366,26 @@ class NHiTSModelWindow(NModelWindow):
         # self.update()
         self.centralize_window()
         self.bring_fwd_window()
+
+    def confg_event(self, choice): # A DEFINIR
+        # if choice == 'Opção 1':
+        #
+        # if choice == 'Opção 2':
+        #
+        # if choice == 'Opção 3':
+        #
+        # if choice == 'Manual':
+        return choice
+
+    def clean_parameters(self):
+        self.entry_input_chunck_length.delete(0, "end")
+        self.entry_output_chunck_length.delete(0, "end")
+        self.entry_num_stacks.delete(0, "end")
+        self.entry_num_blocks.delete(0, "end")
+        self.entry_num_layers.delete(0, "end")
+        self.entry_layer_width.delete(0, "end")
+        self.entry_dropout.delete(0, "end")
+        self.option_activation.set("Selecione")
+        self.option_batch_size.set("Selecione")
+        self.option_n_epoch.set("Selecione/Digite")
+        self.option_save_checkpoint.set("Selecione")
