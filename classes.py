@@ -81,6 +81,7 @@ class BasicWindow(ctk.CTkToplevel):
 
         #Limpar
         self.clear_button = ctk.CTkButton(master=self.option_frame, text="Limpar", command=self.clean_parameters)
+        self.clear_button.configure(state="disabled")
         self.clear_button.grid(row=2, column=0, pady=10)
 
         #Confirmar
