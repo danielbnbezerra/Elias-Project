@@ -1,5 +1,6 @@
 import tkinter as tk
 from doctest import master
+from logging import disable
 
 import customtkinter as ctk
 
@@ -289,8 +290,9 @@ class NBEATSModelWindow(NModelWindow):
         self.option_n_epoch.configure(state="normal")
         self.option_save_checkpoint.configure(state="normal")
 
-    def confg_event(self, choice): # A DEFINIR
+    def confg_event(self, choice): #A DEFINIR ESCOLHAS DE VALORES AINDA
         if choice == 'Opção 1':
+            self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
             self.entry_input_chunck_length.insert(0,"32")
@@ -307,6 +309,7 @@ class NBEATSModelWindow(NModelWindow):
             self.disable_parameters()
 
         if choice == 'Opção 2':
+            self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
             self.entry_input_chunck_length.insert(0, "32")
@@ -323,6 +326,7 @@ class NBEATSModelWindow(NModelWindow):
             self.disable_parameters()
 
         if choice == 'Opção 3':
+            self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
             self.entry_input_chunck_length.insert(0, "32")
@@ -339,6 +343,7 @@ class NBEATSModelWindow(NModelWindow):
             self.disable_parameters()
 
         if choice == 'Manual':
+            self.clear_button.configure(state="normal")
             self.enable_parameters()
             self.clean_parameters()
 
@@ -356,7 +361,6 @@ class NBEATSModelWindow(NModelWindow):
         self.option_save_checkpoint.set("Selecione")
 
 
-
 class NHiTSModelWindow(NModelWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -367,24 +371,97 @@ class NHiTSModelWindow(NModelWindow):
         self.centralize_window()
         self.bring_fwd_window()
 
-    def confg_event(self, choice): # A DEFINIR
-        # if choice == 'Opção 1':
-        #
-        # if choice == 'Opção 2':
-        #
-        # if choice == 'Opção 3':
-        #
-        # if choice == 'Manual':
-        return choice
+    def disable_parameters(self):
+        self.entry_input_chunck_length.configure(state="disabled")
+        self.entry_output_chunck_length.configure(state="disabled")
+        self.entry_num_stacks.configure(state="disabled")
+        self.entry_num_blocks.configure(state="disabled")
+        self.entry_num_layers.configure(state="disabled")
+        self.entry_layer_width.configure(state="disabled")
+        self.entry_dropout.configure(state="disabled")
+        self.option_activation.configure(state="disabled")
+        self.option_batch_size.configure(state="disabled")
+        self.option_n_epoch.configure(state="disabled")
+        self.option_save_checkpoint.configure(state="disabled")
+
+    def enable_parameters(self):
+        self.entry_input_chunck_length.configure(state="normal")
+        self.entry_output_chunck_length.configure(state="normal")
+        self.entry_num_stacks.configure(state="normal")
+        self.entry_num_blocks.configure(state="normal")
+        self.entry_num_layers.configure(state="normal")
+        self.entry_layer_width.configure(state="normal")
+        self.entry_dropout.configure(state="normal")
+        self.option_activation.configure(state="normal")
+        self.option_batch_size.configure(state="normal")
+        self.option_n_epoch.configure(state="normal")
+        self.option_save_checkpoint.configure(state="normal")
+
+    def confg_event(self, choice):  # A DEFINIR ESCOLHAS DE VALORES AINDA
+        if choice == 'Opção 1':
+            self.clear_button.configure(state="disabled")
+            self.enable_parameters()
+            self.clean_parameters()
+            self.entry_input_chunck_length.insert(0, "32")
+            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_num_stacks.insert(0, "3")
+            self.entry_num_blocks.insert(0, "4")
+            self.entry_num_layers.insert(0, "3")
+            self.entry_layer_width.insert(0, "5")
+            self.entry_dropout.insert(0, "2")
+            self.option_activation.set("ReLU")
+            self.option_batch_size.set("16")
+            self.option_n_epoch.set("500")
+            self.option_save_checkpoint.set("True")
+            self.disable_parameters()
+
+        if choice == 'Opção 2':
+            self.clear_button.configure(state="disabled")
+            self.enable_parameters()
+            self.clean_parameters()
+            self.entry_input_chunck_length.insert(0, "32")
+            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_num_stacks.insert(0, "3")
+            self.entry_num_blocks.insert(0, "4")
+            self.entry_num_layers.insert(0, "3")
+            self.entry_layer_width.insert(0, "5")
+            self.entry_dropout.insert(0, "2")
+            self.option_activation.set("ReLU")
+            self.option_batch_size.set("16")
+            self.option_n_epoch.set("750")
+            self.option_save_checkpoint.set("True")
+            self.disable_parameters()
+
+        if choice == 'Opção 3':
+            self.clear_button.configure(state="disabled")
+            self.enable_parameters()
+            self.clean_parameters()
+            self.entry_input_chunck_length.insert(0, "32")
+            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_num_stacks.insert(0, "3")
+            self.entry_num_blocks.insert(0, "4")
+            self.entry_num_layers.insert(0, "3")
+            self.entry_layer_width.insert(0, "5")
+            self.entry_dropout.insert(0, "2")
+            self.option_activation.set("ReLU")
+            self.option_batch_size.set("16")
+            self.option_n_epoch.set("1000")
+            self.option_save_checkpoint.set("True")
+            self.disable_parameters()
+
+        if choice == 'Manual':
+            self.clear_button.configure(state="normal")
+            self.enable_parameters()
+            self.clean_parameters()
 
     def clean_parameters(self):
-        self.entry_input_chunck_length.delete(0, "end")
-        self.entry_output_chunck_length.delete(0, "end")
-        self.entry_num_stacks.delete(0, "end")
-        self.entry_num_blocks.delete(0, "end")
-        self.entry_num_layers.delete(0, "end")
-        self.entry_layer_width.delete(0, "end")
-        self.entry_dropout.delete(0, "end")
+        self.entry_input_chunck_length.delete(0,"end")
+        self.entry_output_chunck_length.delete(0,"end")
+        self.entry_num_stacks.delete(0,"end")
+        self.entry_num_blocks.delete(0,"end")
+        self.entry_num_layers.delete(0,"end")
+        self.entry_layer_width.delete(0,"end")
+        self.entry_dropout.delete(0,"end")
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
         self.option_n_epoch.set("Selecione/Digite")
