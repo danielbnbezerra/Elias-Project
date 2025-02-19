@@ -7,12 +7,12 @@ def upload_file():
     arquivo = filedialog.askopenfilename(
         title="Selecione um arquivo",
         filetypes=[
-            ("Série Temporal", "*.CSV *.xslx *.NetCDF"),  # permite apenas imagens
+            ("Dados", "*.csv *.xslx *.NetCDF"),  # permite apenas imagens
         ]
     )
     # Verificar se o usuário selecionou um arquivo
-    if arquivo:
-        messagebox.showinfo("Arquivo Selecionado", f"Você selecionou: {arquivo}")
-    else:
-        messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
+    # if arquivo:
+    #     messagebox.showinfo("Arquivo Selecionado", f"Você selecionou: {arquivo}")
+    # else:
+    #     messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
 
