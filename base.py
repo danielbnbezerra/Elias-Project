@@ -2,9 +2,10 @@ import tkinter as tk
 from tkinter.tix import BALLOON
 
 import customtkinter as ctk
-from functions import *
 from classes import *
-
+from models import *
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
 
 class Application(ctk.CTk):
     def __init__(self):
@@ -19,6 +20,8 @@ class Application(ctk.CTk):
         self.geometry(f"{app_width}x{app_height}+{int(x)}+{int(y)} ")
         self.create_submenu()
         self.toplevel_window = None
+        self.model = None
+        self.file = None
 
     # Configurações iniciais
         ctk.set_appearance_mode("light")  # "light", "dark", "system"
@@ -44,9 +47,24 @@ class Application(ctk.CTk):
         self.choose_model_button.grid(row=2, column=0, pady=10)
 
         #Upload
-        self.upload_button = ctk.CTkButton(self, text="Upload", command=upload_file)
+        self.upload_button = ctk.CTkButton(self, text="Upload", command=self.upload_file)
         Tooltip(self.upload_button, text="Upload do arquivo contendo os dados de entrada do modelo.")
         self.upload_button.grid(row=3, column=0, pady=40)
+
+    # Função para abrir o diálogo de upload e limitar formatos específicos
+    def upload_file(self):
+        # Filtrar formatos permitidos
+        self.file = filedialog.askopenfilename(
+            title="Selecione um arquivo",
+            filetypes=[
+                ("Dados", "*.csv *.xslx *.NetCDF"),  # permite apenas imagens
+            ]
+        )
+        # Verificar se o usuário selecionou um arquivo
+        # if arquivo:
+        #     messagebox.showinfo("Arquivo Selecionado", f"Você selecionou: {arquivo}")
+        # else:
+        #     messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
 
     # Criar Submenu
     def create_submenu(self):
