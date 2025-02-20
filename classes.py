@@ -1,7 +1,7 @@
+#import models
 import tkinter as tk
 from doctest import master
 from logging import disable
-
 import customtkinter as ctk
 
 class Tooltip:
@@ -63,6 +63,8 @@ class Tooltip:
 class BasicWindow(ctk.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.model= None
+        self.parameters= None
         self.grid_propagate(True)
         self.option_frame = ctk.CTkFrame(self, fg_color="#DDDDDD")
         self.option_frame.place(x=0, y=0, relwidth=0.2, relheight=1)
@@ -85,7 +87,7 @@ class BasicWindow(ctk.CTkToplevel):
         self.clear_button.grid(row=2, column=0, pady=10)
 
         #Confirmar
-        self.confirm_button = ctk.CTkButton(master=self.option_frame, text="Confirmar")
+        self.confirm_button = ctk.CTkButton(master=self.option_frame, text="Confirmar")  #,command=model_run)
         self.confirm_button.grid(row=3, column=0, pady=10)
 
         Tooltip(self.label_confg_buttons, text="Selecione uma configuração predeterminada\n "
@@ -114,6 +116,9 @@ class BasicWindow(ctk.CTkToplevel):
 
     def bring_fwd_window(self):
         self.attributes("-topmost", True)
+
+    def model_run(self):
+        # self.model.fit() #Preciso definir a série a se trabalhada ainda
 
     # def bottom_page_buttons(self):
     #     columns,rows= self.hiperparameter_frame.grid_size()  # Get current grid size
@@ -195,10 +200,10 @@ class NModelWindow(BasicWindow):
         self.entry_num_layers.grid(row=4, column=1, padx=5, pady=5)
 
         # Layer Width
-        self.label_layer_width = ctk.CTkLabel(master=self.hiperparameter_frame, text="Layer Width:", font=("Arial", 14))
-        self.label_layer_width.grid(row=0, column=2, padx=5, pady=5)
-        self.entry_layer_width = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
-        self.entry_layer_width.grid(row=0, column=3, padx=5, pady=5)
+        self.label_layer_widths = ctk.CTkLabel(master=self.hiperparameter_frame, text="Layer Width:", font=("Arial", 14))
+        self.label_layer_widths.grid(row=0, column=2, padx=5, pady=5)
+        self.entry_layer_widths = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
+        self.entry_layer_widths.grid(row=0, column=3, padx=5, pady=5)
 
         # Dropout
         self.label_dropout = ctk.CTkLabel(master=self.hiperparameter_frame, text="Dropout:", font=("Arial", 14))
@@ -226,9 +231,9 @@ class NModelWindow(BasicWindow):
         self.label_n_epochs = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Epochs:", font=("Arial", 14))
         self.label_n_epochs.grid(row=4, column=2, padx=5, pady=5)
         self.n_epochs = ['100', '200', '300', '400', '500', '1000']
-        self.option_n_epoch = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_epochs, state="disabled")
-        self.option_n_epoch.set("Selecione/Digite")
-        self.option_n_epoch.grid(row=4, column=3, padx=5, pady=5)
+        self.option_n_epochs = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_epochs, state="disabled")
+        self.option_n_epochs.set("Selecione/Digite")
+        self.option_n_epochs.grid(row=4, column=3, padx=5, pady=5)
 
         #Save Checkpoints
         self.label_save_checkpoint = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoint:", font=("Arial", 14))
@@ -245,7 +250,7 @@ class NModelWindow(BasicWindow):
         Tooltip(self.label_num_stacks, text="Quantidade de Stacks que constituem o modelo(número).")
         Tooltip(self.label_num_blocks, text="Quantidade de blocos que constituem uma Stack(número).")
         Tooltip(self.label_num_layers, text="Quantidade de camadas totalmente conectadas que precedem a camada final e que compõem cada bloco de cada Stack(número).")
-        Tooltip(self.label_layer_width, text="Determina o número de neurônios que compõem cada camada totalmente conectada em cada bloco de cada pilha. \n "
+        Tooltip(self.label_layer_widths, text="Determina o número de neurônios que compõem cada camada totalmente conectada em cada bloco de cada pilha. \n "
                                              "Se uma lista for passada, ela deve ter um comprimento igual a num_stacks, e cada entrada dessa lista corresponderá \n"
                                              "à largura das camadas da pilha correspondente. Se um número inteiro for passado, todas as pilhas terão blocos com \n"
                                              "camadas totalmente conectadas da mesma largura. (União[números, Lista[números]])")
@@ -271,11 +276,11 @@ class NBEATSModelWindow(NModelWindow):
         self.entry_num_stacks.configure(state="disabled")
         self.entry_num_blocks.configure(state="disabled")
         self.entry_num_layers.configure(state="disabled")
-        self.entry_layer_width.configure(state="disabled")
+        self.entry_layer_widths.configure(state="disabled")
         self.entry_dropout.configure(state="disabled")
         self.option_activation.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
-        self.option_n_epoch.configure(state="disabled")
+        self.option_n_epochs.configure(state="disabled")
         self.option_save_checkpoint.configure(state="disabled")
 
     def enable_parameters(self):
@@ -284,12 +289,35 @@ class NBEATSModelWindow(NModelWindow):
         self.entry_num_stacks.configure(state="normal")
         self.entry_num_blocks.configure(state="normal")
         self.entry_num_layers.configure(state="normal")
-        self.entry_layer_width.configure(state="normal")
+        self.entry_layer_widths.configure(state="normal")
         self.entry_dropout.configure(state="normal")
         self.option_activation.configure(state="normal")
         self.option_batch_size.configure(state="normal")
-        self.option_n_epoch.configure(state="normal")
+        self.option_n_epochs.configure(state="normal")
         self.option_save_checkpoint.configure(state="normal")
+
+    def get_parameters(self):
+        params = {
+            "input_chunk_length": self.entry_input_chunck_length.get(),
+            "output_chunk_length": self.entry_output_chunck_length.get(),
+            "num_stacks": self.entry_num_stacks.get(),
+            "num_blocks": self.entry_num_blocks.get(),
+            "num_layers": self.entry_num_layers.get(),
+            "layer_widths": self.entry_layer_widths.get(),
+            "n_epochs": self.option_n_epochs.get(),
+            "random_state": self.random_state,
+            "dropout": self.entry_dropout.get(),
+            "activation": self.option_activation.get(),
+            "batch_size": self.option_batch_size.get(),
+            "save_checkpoint": self.option_save_checkpoint.get()
+        }
+
+        return params
+
+    def model_construction(self):
+        self.parameters = self.get_parameters()
+        self.model = NBEATSModel(self.parameters)
+
 
     def confg_event(self, choice): #A DEFINIR ESCOLHAS DE VALORES AINDA
         if choice == 'Opção 1':
@@ -301,11 +329,11 @@ class NBEATSModelWindow(NModelWindow):
             self.entry_num_stacks.insert(0,"3")
             self.entry_num_blocks.insert(0,"4")
             self.entry_num_layers.insert(0,"3")
-            self.entry_layer_width.insert(0,"5")
+            self.entry_layer_widths.insert(0,"5")
             self.entry_dropout.insert(0,"2")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epoch.set("500")
+            self.option_n_epochs.set("500")
             self.option_save_checkpoint.set("True")
             self.disable_parameters()
 
@@ -318,11 +346,11 @@ class NBEATSModelWindow(NModelWindow):
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
-            self.entry_layer_width.insert(0, "5")
+            self.entry_layer_widths.insert(0, "5")
             self.entry_dropout.insert(0, "2")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epoch.set("750")
+            self.option_n_epochs.set("750")
             self.option_save_checkpoint.set("True")
             self.disable_parameters()
 
@@ -335,11 +363,11 @@ class NBEATSModelWindow(NModelWindow):
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
-            self.entry_layer_width.insert(0, "5")
+            self.entry_layer_widths.insert(0, "5")
             self.entry_dropout.insert(0, "2")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epoch.set("1000")
+            self.option_n_epochs.set("1000")
             self.option_save_checkpoint.set("True")
             self.disable_parameters()
 
@@ -354,11 +382,11 @@ class NBEATSModelWindow(NModelWindow):
         self.entry_num_stacks.delete(0,"end")
         self.entry_num_blocks.delete(0,"end")
         self.entry_num_layers.delete(0,"end")
-        self.entry_layer_width.delete(0,"end")
+        self.entry_layer_widths.delete(0,"end")
         self.entry_dropout.delete(0,"end")
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
-        self.option_n_epoch.set("Selecione/Digite")
+        self.option_n_epochs.set("Selecione/Digite")
         self.option_save_checkpoint.set("Selecione")
 
 
@@ -378,11 +406,11 @@ class NHiTSModelWindow(NModelWindow):
         self.entry_num_stacks.configure(state="disabled")
         self.entry_num_blocks.configure(state="disabled")
         self.entry_num_layers.configure(state="disabled")
-        self.entry_layer_width.configure(state="disabled")
+        self.entry_layer_widths.configure(state="disabled")
         self.entry_dropout.configure(state="disabled")
         self.option_activation.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
-        self.option_n_epoch.configure(state="disabled")
+        self.option_n_epochs.configure(state="disabled")
         self.option_save_checkpoint.configure(state="disabled")
 
     def enable_parameters(self):
@@ -391,11 +419,11 @@ class NHiTSModelWindow(NModelWindow):
         self.entry_num_stacks.configure(state="normal")
         self.entry_num_blocks.configure(state="normal")
         self.entry_num_layers.configure(state="normal")
-        self.entry_layer_width.configure(state="normal")
+        self.entry_layer_widths.configure(state="normal")
         self.entry_dropout.configure(state="normal")
         self.option_activation.configure(state="normal")
         self.option_batch_size.configure(state="normal")
-        self.option_n_epoch.configure(state="normal")
+        self.option_n_epochs.configure(state="normal")
         self.option_save_checkpoint.configure(state="normal")
 
     def confg_event(self, choice):  # A DEFINIR ESCOLHAS DE VALORES AINDA
@@ -408,11 +436,11 @@ class NHiTSModelWindow(NModelWindow):
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
-            self.entry_layer_width.insert(0, "5")
+            self.entry_layer_widths.insert(0, "5")
             self.entry_dropout.insert(0, "2")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epoch.set("500")
+            self.option_n_epochs.set("500")
             self.option_save_checkpoint.set("True")
             self.disable_parameters()
 
@@ -425,11 +453,11 @@ class NHiTSModelWindow(NModelWindow):
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
-            self.entry_layer_width.insert(0, "5")
+            self.entry_layer_widths.insert(0, "5")
             self.entry_dropout.insert(0, "2")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epoch.set("750")
+            self.option_n_epochs.set("750")
             self.option_save_checkpoint.set("True")
             self.disable_parameters()
 
@@ -442,11 +470,11 @@ class NHiTSModelWindow(NModelWindow):
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
-            self.entry_layer_width.insert(0, "5")
+            self.entry_layer_widths.insert(0, "5")
             self.entry_dropout.insert(0, "2")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epoch.set("1000")
+            self.option_n_epochs.set("1000")
             self.option_save_checkpoint.set("True")
             self.disable_parameters()
 
@@ -461,9 +489,9 @@ class NHiTSModelWindow(NModelWindow):
         self.entry_num_stacks.delete(0,"end")
         self.entry_num_blocks.delete(0,"end")
         self.entry_num_layers.delete(0,"end")
-        self.entry_layer_width.delete(0,"end")
+        self.entry_layer_widths.delete(0,"end")
         self.entry_dropout.delete(0,"end")
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
-        self.option_n_epoch.set("Selecione/Digite")
+        self.option_n_epochs.set("Selecione/Digite")
         self.option_save_checkpoint.set("Selecione")
