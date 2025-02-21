@@ -1,4 +1,4 @@
-#import models
+from models import *
 import tkinter as tk
 from doctest import master
 from logging import disable
@@ -60,35 +60,76 @@ class Tooltip:
             y = self.widget.winfo_rooty() + 20
             self.tooltip_window.geometry(f"+{x}+{y}")
 
+class ConfirmExitWindow(ctk.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Confirm Exit")
+        self.geometry("300x150")
+        self.centralize_window()
+        self.grab_set()  # Make this window modal (prevents interaction with the main window)
+
+        label = ctk.CTkLabel(self, text="Are you sure you want to quit?")
+        label.pack(pady=20)
+
+        button_frame = ctk.CTkFrame(self)
+        button_frame.pack(pady=10)
+
+        yes_button = ctk.CTkButton(button_frame, text="Yes", command=parent.quit)
+        yes_button.pack(side="left", padx=10)
+
+        no_button = ctk.CTkButton(button_frame, text="No", command=self.destroy)
+        no_button.pack(side="right", padx=10)
+
+    def centralize_window(self):
+        # window_width = round(self.winfo_width(),-1)
+        # window_height = round(self.winfo_height(),-1)
+        window_width = 300
+        window_height = 150
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        x = round((screen_width - window_width)//2,-1)
+        y = round((screen_height - window_height)//2,-1)
+        self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
+
+
 class BasicWindow(ctk.CTkToplevel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, file, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.model= None
-        self.parameters= None
+        self.grab_set()
+        self.model = None
+        self.file = file
+        self.parameters = None
         self.grid_propagate(True)
         self.option_frame = ctk.CTkFrame(self, fg_color="#DDDDDD")
         self.option_frame.place(x=0, y=0, relwidth=0.2, relheight=1)
         self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
         self.hiperparameter_frame.place(relx=0.2, y=0, relwidth=0.8, relheight=1)
 
+        self.option_frame.columnconfigure(0, weight=1)
+        #Tratamento de Dados
+        self.checkbox_data_treat= ctk.CTkCheckBox(master=self.option_frame,
+                                                  text="Tratar Dados",
+                                                  font=("Arial",14))
+        self.checkbox_data_treat.grid(row=0, column=0, padx=5, pady=5)
+
         #Configuração
         self.label_confg_buttons= ctk.CTkLabel(master=self.option_frame,
                                                text="Configuração:",
                                                font= ("Arial", 14))
-        self.label_confg_buttons.grid(row=0, column=0, padx=5, pady=5)
+        self.label_confg_buttons.grid(row=1, column=0, padx=5, pady=5)
         self.confgs_options = ["Opção 1", "Opção 2", "Opção 3", "Manual"]
         self.confgs_options = ctk.CTkOptionMenu(master=self.option_frame, values=self.confgs_options, command=self.confg_event)
         self.confgs_options.set("Selecione")
-        self.confgs_options.grid(row=1, column=0, padx=5, pady=5)
+        self.confgs_options.grid(row=2, column=0, padx=5, pady=5)
 
         #Limpar
         self.clear_button = ctk.CTkButton(master=self.option_frame, text="Limpar", command=self.clean_parameters)
         self.clear_button.configure(state="disabled")
-        self.clear_button.grid(row=2, column=0, pady=10)
+        self.clear_button.grid(row=3, column=0, pady=10)
 
         #Confirmar
         self.confirm_button = ctk.CTkButton(master=self.option_frame, text="Confirmar")  #,command=model_run)
-        self.confirm_button.grid(row=3, column=0, pady=10)
+        self.confirm_button.grid(row=4, column=0, pady=10)
 
         Tooltip(self.label_confg_buttons, text="Selecione uma configuração predeterminada\n "
                                                "para o modelo ou edite manualmente os \n"
@@ -117,7 +158,7 @@ class BasicWindow(ctk.CTkToplevel):
     def bring_fwd_window(self):
         self.attributes("-topmost", True)
 
-    def model_run(self):
+    #def model_run(self):
         # self.model.fit() #Preciso definir a série a se trabalhada ainda
 
     # def bottom_page_buttons(self):
@@ -163,7 +204,7 @@ class LHCModelWindow(BasicWindow):
     #     return choice
 
 class NModelWindow(BasicWindow):
-    def __init__(self, *args, **kwargs):
+    def __init__(self,*args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Random State
@@ -265,6 +306,7 @@ class NBEATSModelWindow(NModelWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("N-BEATS Model")
+        print(self.file)
         # self.update_idletasks()
         # self.update()
         self.centralize_window()
@@ -295,29 +337,6 @@ class NBEATSModelWindow(NModelWindow):
         self.option_batch_size.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
         self.option_save_checkpoint.configure(state="normal")
-
-    def get_parameters(self):
-        params = {
-            "input_chunk_length": self.entry_input_chunck_length.get(),
-            "output_chunk_length": self.entry_output_chunck_length.get(),
-            "num_stacks": self.entry_num_stacks.get(),
-            "num_blocks": self.entry_num_blocks.get(),
-            "num_layers": self.entry_num_layers.get(),
-            "layer_widths": self.entry_layer_widths.get(),
-            "n_epochs": self.option_n_epochs.get(),
-            "random_state": self.random_state,
-            "dropout": self.entry_dropout.get(),
-            "activation": self.option_activation.get(),
-            "batch_size": self.option_batch_size.get(),
-            "save_checkpoint": self.option_save_checkpoint.get()
-        }
-
-        return params
-
-    def model_construction(self):
-        self.parameters = self.get_parameters()
-        self.model = NBEATSModel(self.parameters)
-
 
     def confg_event(self, choice): #A DEFINIR ESCOLHAS DE VALORES AINDA
         if choice == 'Opção 1':
@@ -389,6 +408,27 @@ class NBEATSModelWindow(NModelWindow):
         self.option_n_epochs.set("Selecione/Digite")
         self.option_save_checkpoint.set("Selecione")
 
+    def get_parameters(self):
+        params = {
+            "input_chunk_length": self.entry_input_chunck_length.get(),
+            "output_chunk_length": self.entry_output_chunck_length.get(),
+            "num_stacks": self.entry_num_stacks.get(),
+            "num_blocks": self.entry_num_blocks.get(),
+            "num_layers": self.entry_num_layers.get(),
+            "layer_widths": self.entry_layer_widths.get(),
+            "n_epochs": self.option_n_epochs.get(),
+            "random_state": self.random_state,
+            "dropout": self.entry_dropout.get(),
+            "activation": self.option_activation.get(),
+            "batch_size": self.option_batch_size.get(),
+            "save_checkpoint": self.option_save_checkpoint.get()
+        }
+
+        return params
+
+    def model_construction(self):
+        self.parameters = self.get_parameters()
+        self.model = NBEATSModel(self.parameters)
 
 class NHiTSModelWindow(NModelWindow):
     def __init__(self, *args, **kwargs):
@@ -495,3 +535,6 @@ class NHiTSModelWindow(NModelWindow):
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
         self.option_save_checkpoint.set("Selecione")
+
+    class ModelRun(ctk.CTkToplevel):
+        def __init__(self):

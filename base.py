@@ -1,9 +1,6 @@
 import tkinter as tk
-from tkinter.tix import BALLOON
-
 import customtkinter as ctk
 from classes import *
-from models import *
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
@@ -51,6 +48,9 @@ class Application(ctk.CTk):
         Tooltip(self.upload_button, text="Upload do arquivo contendo os dados de entrada do modelo.")
         self.upload_button.grid(row=3, column=0, pady=40)
 
+    def confirm_exit(self):
+        ConfirmExitWindow(self)
+
     # Função para abrir o diálogo de upload e limitar formatos específicos
     def upload_file(self):
         # Filtrar formatos permitidos
@@ -79,7 +79,7 @@ class Application(ctk.CTk):
         file_menu.add_command(label="Open", command=self.open_file)
         file_menu.add_command(label="Save", command=self.save_file)
         file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.exit_app)
+        file_menu.add_command(label="Exit", command=self.confirm_exit)
 
         # Edit menu
         edit_menu = tk.Menu(main_menu, tearoff=0)
@@ -92,8 +92,8 @@ class Application(ctk.CTk):
         view_menu = tk.Menu(main_menu, tearoff=0)
         main_menu.add_cascade(label="View", menu=view_menu)
         view_menu.add_checkbutton(label="Full Screen", command=self.toggle_full_screen)
-        # view_menu.add_command(label="Zoom In", command=self.zoom_in)
-        # view_menu.add_command(label="Zoom Out", command=self.zoom_out)
+        view_menu.add_command(label="Zoom In", command=self.zoom_in)
+        view_menu.add_command(label="Zoom Out", command=self.zoom_out)
 
         # Help menu
         help_menu = tk.Menu(main_menu, tearoff=0)
@@ -128,26 +128,40 @@ class Application(ctk.CTk):
         self.attributes("-fullscreen", not self.attributes("-fullscreen"))
 
     def zoom_in(self):
-        self.show_message("Zoom In")
+        self.show_message("Info","Zoom In")
 
     def zoom_out(self):
-        self.show_message("Zoom Out")
+        self.show_message("Info","Zoom Out")
 
     # Help menu commands
     def about(self):
-        self.show_message("This is an example application with a menu!")
+        self.show_message("About","This is an example application with a menu!")
 
     # Utility function
-    def show_message(self, msg):
-        messagebox.showinfo("Info", msg)
+    def show_message(self, title,msg):
+        messagebox.showinfo(title, msg)
 
     def open_toplevel(self):
-        if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
-            if self.model_option.get() == self.models[0]:
-                self.toplevel_window = LHCModelWindow()
-            if self.model_option.get() == self.models[1]:
-                self.toplevel_window = NBEATSModelWindow()
-            if self.model_option.get() == self.models[2]:
-                self.toplevel_window = NHiTSModelWindow()
+        if self.file:
+            messagebox.showinfo("Arquivo Selecionado", f"Você selecionou o arquivo: {self.file}")
+            if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
+                if self.model_option.get() == self.models[0]:
+                    self.toplevel_window = LHCModelWindow(self.file)
+                if self.model_option.get() == self.models[1]:
+                    self.toplevel_window = NBEATSModelWindow(self.file)
+                if self.model_option.get() == self.models[2]:
+                    self.toplevel_window = NHiTSModelWindow(self.file)
+            else:
+                self.toplevel_window.focus()
         else:
-            self.toplevel_window.focus()
+            messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
+
+        # if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
+        #     if self.model_option.get() == self.models[0]:
+        #         self.toplevel_window = LHCModelWindow(self.file)
+        #     if self.model_option.get() == self.models[1]:
+        #         self.toplevel_window = NBEATSModelWindow(self.file)
+        #     if self.model_option.get() == self.models[2]:
+        #         self.toplevel_window = NHiTSModelWindow(self.file)
+        # else:
+        #     self.toplevel_window.focus()
