@@ -1,5 +1,4 @@
 import tkinter as tk
-import customtkinter as ctk
 from classes import *
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
@@ -16,7 +15,7 @@ class Application(ctk.CTk):
         y= screen_height/2 - app_height/2
         self.geometry(f"{app_width}x{app_height}+{int(x)}+{int(y)} ")
         self.create_submenu()
-        self.toplevel_window = None
+        self.param_window = None
         self.model = None
         self.file = None
 
@@ -40,13 +39,13 @@ class Application(ctk.CTk):
         self.model_option.set("Escolha o modelo")  # Define a opção padrão
 
         #Confirmação
-        self.choose_model_button = ctk.CTkButton(self, text="Confirmar", command=self.open_toplevel)
+        self.choose_model_button = ctk.CTkButton(self, text="Confirmar", command=self.parameter_window)
         self.choose_model_button.grid(row=2, column=0, pady=10)
 
         #Upload
         self.upload_button = ctk.CTkButton(self, text="Upload", command=self.upload_file)
         Tooltip(self.upload_button, text="Upload do arquivo contendo os dados de entrada do modelo.")
-        self.upload_button.grid(row=3, column=0, pady=40)
+        self.upload_button.grid(row=3, column=0, pady=30)
 
     def confirm_exit(self):
         ConfirmExitWindow(self)
@@ -141,18 +140,18 @@ class Application(ctk.CTk):
     def show_message(self, title,msg):
         messagebox.showinfo(title, msg)
 
-    def open_toplevel(self):
+    def parameter_window(self):
         if self.file:
             messagebox.showinfo("Arquivo Selecionado", f"Você selecionou o arquivo: {self.file}")
-            if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
+            if self.param_window is None or not self.param_window.winfo_exists():
                 if self.model_option.get() == self.models[0]:
-                    self.toplevel_window = LHCModelWindow(self.file)
+                    self.param_window = LHCModelWindow(self.file)
                 if self.model_option.get() == self.models[1]:
-                    self.toplevel_window = NBEATSModelWindow(self.file)
+                    self.param_window = NBEATSModelWindow(self.file)
                 if self.model_option.get() == self.models[2]:
-                    self.toplevel_window = NHiTSModelWindow(self.file)
+                    self.param_window = NHiTSModelWindow(self.file)
             else:
-                self.toplevel_window.focus()
+                self.param_window.focus()
         else:
             messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
 
