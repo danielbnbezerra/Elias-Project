@@ -1,5 +1,4 @@
-import tkinter as tk
-from classes import *
+from parametros import *
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
@@ -18,6 +17,7 @@ class Application(ctk.CTk):
         self.param_window = None
         self.model = None
         self.file = None
+        self.protocol("WM_DELETE_WINDOW", self.confirm_exit)
 
     # Configurações iniciais
         ctk.set_appearance_mode("light")  # "light", "dark", "system"

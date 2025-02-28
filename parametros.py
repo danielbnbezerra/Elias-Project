@@ -1,7 +1,5 @@
 from models import *
 import tkinter as tk
-from doctest import master
-from logging import disable
 import customtkinter as ctk
 
 class Tooltip:
@@ -63,21 +61,21 @@ class Tooltip:
 class ConfirmExitWindow(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
-        self.title("Confirm Exit")
+        self.title("Sair do Aplicativo?")
         self.geometry("300x150")
         self.centralize_window()
         self.grab_set()  # Make this window modal (prevents interaction with the main window)
 
-        label = ctk.CTkLabel(self, text="Are you sure you want to quit?")
+        label = ctk.CTkLabel(self, text="Tem certeza que deseja sair?")
         label.pack(pady=20)
 
         button_frame = ctk.CTkFrame(self)
         button_frame.pack(pady=10)
 
-        yes_button = ctk.CTkButton(button_frame, text="Yes", command=parent.quit)
+        yes_button = ctk.CTkButton(button_frame, text="Sim", command=parent.quit)
         yes_button.pack(side="left", padx=10)
 
-        no_button = ctk.CTkButton(button_frame, text="No", command=self.destroy)
+        no_button = ctk.CTkButton(button_frame, text="Não", command=self.destroy)
         no_button.pack(side="right", padx=10)
 
     def centralize_window(self):
@@ -136,13 +134,6 @@ class BasicWindow(ctk.CTkToplevel):
                                                "parâmetros:")
         Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
         Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
-
-    def print_window_screen(self):
-        window_width = self.winfo_width()
-        window_height = self.winfo_height()
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        print(window_width, window_height, screen_width, screen_height)
 
     def centralize_window(self):
         # window_width = round(self.winfo_width(),-1)
@@ -291,12 +282,12 @@ class NModelWindow(BasicWindow):
         self.option_n_epochs.grid(row=4, column=3, padx=5, pady=5)
 
         #Save Checkpoints
-        self.label_save_checkpoint = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoint:", font=("Arial", 14))
-        self.label_save_checkpoint.grid(row=0, column=4, padx=5, pady=5)
+        self.label_save_checkpoints = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoints:", font=("Arial", 14))
+        self.label_save_checkpoints.grid(row=0, column=4, padx=5, pady=5)
         self.boolean_options = ['True', 'False']
-        self.option_save_checkpoint = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options, state="disabled")
-        self.option_save_checkpoint.set("Selecione")
-        self.option_save_checkpoint.grid(row=0, column=5, padx=5, pady=5)
+        self.option_save_checkpoints = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options, state="disabled")
+        self.option_save_checkpoints.set("Selecione")
+        self.option_save_checkpoints.grid(row=0, column=5, padx=5, pady=5)
 
         # self.bottom_page_buttons()
 
@@ -313,7 +304,7 @@ class NModelWindow(BasicWindow):
         Tooltip(self.label_activation, text="Função de ativação utilizada no modelo.")
         Tooltip(self.label_batch_size, text="Número de séries temporais (sequências de entrada e saída) utilizadas em cada passagem de treinamento.")
         Tooltip(self.label_n_epochs, text="Número de épocas em cada rodada de treinamento do modelo.")
-        Tooltip(self.label_save_checkpoint, text="Define se o modelo não treinado e os checkpoints do treinamento serão salvos automaticamente.")
+        Tooltip(self.label_save_checkpoints, text="Define se o modelo não treinado e os checkpoints do treinamento serão salvos automaticamente.")
 
 
 class NBEATSModelWindow(NModelWindow):
@@ -337,7 +328,7 @@ class NBEATSModelWindow(NModelWindow):
         self.option_activation.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
         self.option_n_epochs.configure(state="disabled")
-        self.option_save_checkpoint.configure(state="disabled")
+        self.option_save_checkpoints.configure(state="disabled")
 
     def enable_parameters(self):
         self.entry_input_chunck_length.configure(state="normal")
@@ -350,7 +341,7 @@ class NBEATSModelWindow(NModelWindow):
         self.option_activation.configure(state="normal")
         self.option_batch_size.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
-        self.option_save_checkpoint.configure(state="normal")
+        self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice): #A DEFINIR ESCOLHAS DE VALORES AINDA
         if choice == 'Opção 1':
@@ -367,7 +358,7 @@ class NBEATSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("500")
-            self.option_save_checkpoint.set("True")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Opção 2':
@@ -384,7 +375,7 @@ class NBEATSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("750")
-            self.option_save_checkpoint.set("True")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Opção 3':
@@ -401,7 +392,7 @@ class NBEATSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("1000")
-            self.option_save_checkpoint.set("True")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Manual':
@@ -420,7 +411,7 @@ class NBEATSModelWindow(NModelWindow):
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
-        self.option_save_checkpoint.set("Selecione")
+        self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
         self.parameters = {
@@ -435,7 +426,7 @@ class NBEATSModelWindow(NModelWindow):
             "dropout": self.entry_dropout.get(),
             "activation": self.option_activation.get(),
             "batch_size": self.option_batch_size.get(),
-            "save_checkpoint": self.option_save_checkpoint.get()
+            "save_checkpoints": self.option_save_checkpoints.get()
         }
 
     def model_run(self):
@@ -464,7 +455,7 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
         self.option_n_epochs.configure(state="disabled")
-        self.option_save_checkpoint.configure(state="disabled")
+        self.option_save_checkpoints.configure(state="disabled")
 
     def enable_parameters(self):
         self.entry_input_chunck_length.configure(state="normal")
@@ -477,7 +468,7 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.configure(state="normal")
         self.option_batch_size.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
-        self.option_save_checkpoint.configure(state="normal")
+        self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice):  # A DEFINIR ESCOLHAS DE VALORES AINDA
         if choice == 'Opção 1':
@@ -494,7 +485,7 @@ class NHiTSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("500")
-            self.option_save_checkpoint.set("True")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Opção 2':
@@ -511,7 +502,7 @@ class NHiTSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("750")
-            self.option_save_checkpoint.set("True")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Opção 3':
@@ -528,7 +519,7 @@ class NHiTSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("1000")
-            self.option_save_checkpoint.set("True")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Manual':
@@ -547,7 +538,7 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
-        self.option_save_checkpoint.set("Selecione")
+        self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
         self.parameters = {
@@ -562,7 +553,7 @@ class NHiTSModelWindow(NModelWindow):
             "dropout": self.entry_dropout.get(),
             "activation": self.option_activation.get(),
             "batch_size": self.option_batch_size.get(),
-            "save_checkpoint": self.option_save_checkpoint.get()
+            "save_checkpoints": self.option_save_checkpoint.get()
         }
 
     def model_run(self):

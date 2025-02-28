@@ -2,9 +2,6 @@ import customtkinter as ctk
 import torch
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from darts import timeseries
-from darts.utils.statistics import check_seasonality, plot_acf
 from darts.models import NBEATSModel
 from darts.models import NHiTSModel
 
@@ -13,8 +10,8 @@ class ModelRunWindow(ctk.CTkToplevel):
         super().__init__()
         self.grab_set()
         self.grid_propagate(True)
-        # self.data_train = data_train
-        # self.data_valid = data_valid
+        #self.data_train = data_train
+        #self.data_valid = data_valid
         self.params = params
         self.model = None
         print(self.params)
@@ -23,12 +20,17 @@ class ModelRunWindow(ctk.CTkToplevel):
 
     def model_train(self):
         return None
-        # model.fit(train, val_series=val)
+        # self.model.fit(self.data_train, val_series=self.data_valid)
         # eval_model(model, len(val_scaled) + 48, series_scaled, val_scaled)
         # print('best_model')
-        # model = NBEATSModel.load_from_checkpoint(model.model_name)
+        # if self.params['save_checkpoints'] == 'True':
+        #     self.model = NBEATSModel.load_from_checkpoint(self.model.model_name)
         # eval_model(model, len(val_scaled) + 48, series_scaled, val_scaled)
-        #
+
+    def evaluate_model(self):
+
+        return None
+
     def centralize_window(self):
         # window_width = round(self.winfo_width(),-1)
         # window_height = round(self.winfo_height(),-1)
