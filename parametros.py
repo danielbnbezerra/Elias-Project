@@ -2,6 +2,8 @@ from models import *
 import tkinter as tk
 import customtkinter as ctk
 
+#JANELA PRINCIPAL COM CHECKBOX EM VEZ DE OPTION MENU, janelas de parâmetros abrem para cada checkbox marcada.
+
 class Tooltip:
     def __init__(self, widget, text, delay=500):
         self.widget = widget
@@ -89,12 +91,13 @@ class ConfirmExitWindow(ctk.CTkToplevel):
         y = round((screen_height - window_height)//2,-1)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
-
 class BasicWindow(ctk.CTkToplevel):
-    def __init__(self, file, *args, **kwargs):
+    def __init__(self, file, index, remaining_models, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.grab_set()
         self.grid_propagate(True)
+        self.index = index
+        self.selected_models = remaining_models
         self.model = None
         self.file = file
         self.parameters = None
@@ -103,6 +106,7 @@ class BasicWindow(ctk.CTkToplevel):
         self.option_frame.columnconfigure(0, weight=1)
         self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
         self.hiperparameter_frame.place(relx=0.2, y=0, relwidth=0.8, relheight=1)
+        self.configurations= []
 
         #Tratamento de Dados
         self.checkbox_data_treat= ctk.CTkCheckBox(master=self.option_frame,
@@ -125,15 +129,31 @@ class BasicWindow(ctk.CTkToplevel):
         self.clear_button.configure(state="disabled")
         self.clear_button.grid(row=3, column=0, pady=10)
 
-        #Confirmar
-        self.confirm_button = ctk.CTkButton(master=self.option_frame, text="Confirmar", command=self.model_run)
-        self.confirm_button.grid(row=4, column=0, pady=10)
+        # Confirmar ou Próximo
+        print(self.index >= (len(self.selected_models) - 1))
+        if self.index >= (len(self.selected_models) - 1):
+            self.confirm_button = ctk.CTkButton(master=self.option_frame, text="Confirmar", command=self.model_run)
+            self.confirm_button.grid(row=4, column=0, pady=10)
+            Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
+        else:
+            self.next_button = ctk.CTkButton(master=self.option_frame, text="Próximo", command=self.next_window)
+            self.next_button.grid(row=4, column=0, pady=10)
+            Tooltip(self.next_button, text="Passa para a próxima janela de modelo a ser confiogurada.")
 
         Tooltip(self.label_confg_buttons, text="Selecione uma configuração predeterminada\n "
                                                "para o modelo ou edite manualmente os \n"
                                                "parâmetros:")
         Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
-        Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
+    def get_configurations(self):
+        self.get_parameters()
+        self.configurations.append({"model":self.selected_models[self.index]["name"],"parameters":self.parameters})
+
+    def next_window(self):
+        # Fecha a janela atual e abre a próxima
+        self.get_configurations()
+        next_model_window = self.selected_models[self.index]["window"]
+        next_model_window(self.file, self.index+1, self.selected_models)
+        self.after(100, self.destroy)
 
     def centralize_window(self):
         # window_width = round(self.winfo_width(),-1)
@@ -180,6 +200,7 @@ class LHCModelWindow(BasicWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("LHC - Escolha os Parâmetros")
+        # self.model = LHCModel
 
     # def clean_parameters(self):
     #     self.entry_input_chunck_length.delete(0,"end")
@@ -430,9 +451,13 @@ class NBEATSModelWindow(NModelWindow):
         }
 
     def model_run(self):
-        self.get_parameters()
-        self.destroy()
-        ModelRunNBEATSWindow(self.parameters)
+        self.get_configurations()
+        print(self.configurations)
+        for i , model in enumerate(self.selected_models):
+            if model["name"] == "N-BEATS":
+                ModelRunNBEATSWindow(self.configurations[i]["parameters"])
+        self.after(100, self.destroy)
+
 
 class NHiTSModelWindow(NModelWindow):
     def __init__(self, *args, **kwargs):
@@ -553,10 +578,12 @@ class NHiTSModelWindow(NModelWindow):
             "dropout": self.entry_dropout.get(),
             "activation": self.option_activation.get(),
             "batch_size": self.option_batch_size.get(),
-            "save_checkpoints": self.option_save_checkpoint.get()
+            "save_checkpoints": self.option_save_checkpoints.get()
         }
 
     def model_run(self):
-        self.get_parameters()
-        self.destroy()
-        ModelRunNHiTSWindow(self.parameters)
+        self.get_configurations()
+        for i, model in enumerate(self.selected_models):
+            if model["name"] == "N-HiTS":
+                ModelRunNHiTSWindow(self.configurations[i]["parameters"])
+        self.after(100, self.destroy)
