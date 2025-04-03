@@ -92,8 +92,10 @@ class ConfirmExitWindow(ctk.CTkToplevel):
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
 class BasicWindow(ctk.CTkToplevel):
-    def __init__(self, file, index, remaining_models, *args, **kwargs):
+    def __init__(self, file, index, remaining_models, configs=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if configs is None:
+            configs = []
         self.grab_set()
         self.grid_propagate(True)
         self.index = index
@@ -106,13 +108,7 @@ class BasicWindow(ctk.CTkToplevel):
         self.option_frame.columnconfigure(0, weight=1)
         self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
         self.hiperparameter_frame.place(relx=0.2, y=0, relwidth=0.8, relheight=1)
-        self.configurations= []
-
-        #Tratamento de Dados
-        self.checkbox_data_treat= ctk.CTkCheckBox(master=self.option_frame,
-                                                  text="Tratar Dados",
-                                                  font=("Arial",14))
-        self.checkbox_data_treat.grid(row=0, column=0, padx=5, pady=5)
+        self.configurations= configs
 
         #Configuração
         self.label_confg_buttons= ctk.CTkLabel(master=self.option_frame,
@@ -130,8 +126,7 @@ class BasicWindow(ctk.CTkToplevel):
         self.clear_button.grid(row=3, column=0, pady=10)
 
         # Confirmar ou Próximo
-        print(self.index >= (len(self.selected_models) - 1))
-        if self.index >= (len(self.selected_models) - 1):
+        if self.index > (len(self.selected_models) - 1):
             self.confirm_button = ctk.CTkButton(master=self.option_frame, text="Confirmar", command=self.model_run)
             self.confirm_button.grid(row=4, column=0, pady=10)
             Tooltip(self.confirm_button, text="Confirmar escolhas e executar o modelo.")
@@ -146,13 +141,14 @@ class BasicWindow(ctk.CTkToplevel):
         Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
     def get_configurations(self):
         self.get_parameters()
-        self.configurations.append({"model":self.selected_models[self.index]["name"],"parameters":self.parameters})
+        self.configurations.append({"model":self.selected_models[self.index-1]["name"],"parameters":self.parameters})
 
     def next_window(self):
         # Fecha a janela atual e abre a próxima
         self.get_configurations()
         next_model_window = self.selected_models[self.index]["window"]
-        next_model_window(self.file, self.index+1, self.selected_models)
+        print(next_model_window)
+        next_model_window(self.file, self.index+1, self.selected_models, self.configurations)
         self.after(100, self.destroy)
 
     def centralize_window(self):
@@ -197,8 +193,8 @@ class BasicWindow(ctk.CTkToplevel):
 
 
 class LHCModelWindow(BasicWindow):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, file, index, remaining_models, *args, **kwargs):
+        super().__init__(file, index, remaining_models,*args, **kwargs)
         self.title("LHC - Escolha os Parâmetros")
         # self.model = LHCModel
 
@@ -230,8 +226,8 @@ class LHCModelWindow(BasicWindow):
     #     ModelRunLHCWindow(self.parameters)
 
 class NModelWindow(BasicWindow):
-    def __init__(self,*args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self,file, index, remaining_models, *args, **kwargs):
+        super().__init__(file, index, remaining_models, *args, **kwargs)
 
         # Random State
         self.random_state = 42
@@ -329,10 +325,9 @@ class NModelWindow(BasicWindow):
 
 
 class NBEATSModelWindow(NModelWindow):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, file, index, remaining_models, *args, **kwargs):
+        super().__init__(file, index, remaining_models, *args, **kwargs)
         self.title("N-BEATS - Escolha os Parâmetros")
-        print(self.file)
         # self.update_idletasks()
         # self.update()
         self.centralize_window()
@@ -455,7 +450,7 @@ class NBEATSModelWindow(NModelWindow):
         print(self.configurations)
         for i , model in enumerate(self.selected_models):
             if model["name"] == "N-BEATS":
-                ModelRunNBEATSWindow(self.configurations[i]["parameters"])
+                ModelRunNBEATSWindow(self.configurations[i]["parameters"], self.file)
         self.after(100, self.destroy)
 
 
@@ -581,9 +576,11 @@ class NHiTSModelWindow(NModelWindow):
             "save_checkpoints": self.option_save_checkpoints.get()
         }
 
-    def model_run(self):
+    def model_run(self): #Model Run genérico, começa por uma varredura do index 0 e segue incrementando.
         self.get_configurations()
+        print(self.configurations)
         for i, model in enumerate(self.selected_models):
             if model["name"] == "N-HiTS":
-                ModelRunNHiTSWindow(self.configurations[i]["parameters"])
+                print(i,model, self.selected_models)
+                ModelRunNHiTSWindow(self.configurations[i]["parameters"], self.file)
         self.after(100, self.destroy)

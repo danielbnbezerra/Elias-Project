@@ -39,13 +39,10 @@ class Application(ctk.CTk):
         self.main_options_frame.place(x=0, y=0, relwidth=0.4, relheight=1)
         self.main_options_frame.columnconfigure(0, weight=1)
         self.main_options_frame.rowconfigure(0, weight=1)  # Espaço antes dos botões
-        self.main_options_frame.rowconfigure(2, weight=1)
+        self.main_options_frame.rowconfigure(1, weight=1)
 
-        eval_series_button = ctk.CTkButton(master=self.main_options_frame, text="Avaliar Série", command=lambda: self.display_options("option_1"))
-        eval_series_button.grid(row=0, column=0, padx=15, pady=10)
-
-        predict_button = ctk.CTkButton(master= self.main_options_frame, text="Realizar Previsão", command=lambda: self.display_options("option_2"))
-        predict_button.grid(row=1, column=0, padx=15, pady=10)
+        predict_button = ctk.CTkButton(master= self.main_options_frame, text="Realizar Previsão", command=lambda: self.display_options("option_1"))
+        predict_button.grid(row=0, column=0, padx=15, pady=10)
 
         #Frame de Opção Selecionada
         self.main_selected_options_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
@@ -55,9 +52,7 @@ class Application(ctk.CTk):
         self.main_selected_options_frame.rowconfigure(5, weight=1)  # Espaço depois dos botões
 
         self.upload_button = None
-        #Opção 1 - Avaliar Série
-        self.evaluate_button = None
-        #Opção 2 - Realizar Previsão
+        #Opção 1 - Realizar Previsão
         # self.models = None
         # self.model_option = None
         self.choose_model_button = None
@@ -73,16 +68,6 @@ class Application(ctk.CTk):
             widget.destroy()
 
         if option == "option_1":
-            #Avaliar Série
-            self.evaluate_button = ctk.CTkButton(master=self.main_selected_options_frame, text="Avaliar Série") #command=self.series_window)
-            self.evaluate_button.grid(row=1, column=0, pady=5)
-
-            #Upload
-            self.upload_button = ctk.CTkButton(master=self.main_selected_options_frame, text="Upload", command=self.upload_file)
-            Tooltip(self.upload_button, text="Upload do arquivo contendo os dados de entrada do modelo.")
-            self.upload_button.grid(row=2, column=0, pady=30)
-
-        elif option == "option_2":
             #Seleção do Modelo
             for i, model in enumerate(self.possible_windows):
                 var = ctk.BooleanVar()
@@ -214,14 +199,14 @@ class Application(ctk.CTk):
             self.parameter_window(selected_models, 0)
 
     def parameter_window(self, selected_models, index):
-        if index >= len(selected_models):
+        if index > len(selected_models):
             print("Todos os modelos configurados!")
             return
         model_name_window = selected_models[index]["window"]
         if self.file:
             messagebox.showinfo("Arquivo Selecionado", f"Você selecionou o arquivo: {self.file}")
             if self.new_window is None or not self.new_window.winfo_exists():
-                self.new_window = model_name_window(self.file, index, selected_models)
+                self.new_window = model_name_window(self.file, index+1, selected_models)
             else:
                 self.new_window.focus()
         else:

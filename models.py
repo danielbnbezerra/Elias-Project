@@ -1,3 +1,4 @@
+from series import *
 import customtkinter as ctk
 import torch
 import numpy as np
@@ -6,16 +7,13 @@ from darts.models import NBEATSModel
 from darts.models import NHiTSModel
 
 class ModelRunWindow(ctk.CTkToplevel):
-    def __init__(self, params): #Inserir futuramente na inicialização data_train e data_valid após realizar o tratamento da série
+    def __init__(self, params, file):
         super().__init__()
         self.grab_set()
         self.grid_propagate(True)
-        #self.data_train = data_train
-        #self.data_valid = data_valid
+        self.series = GetSeries(file)
         self.params = params
         self.model = None
-        print(self.params)
-
         self.centralize_window()
 
     def model_train(self):
@@ -52,16 +50,16 @@ class ModelRunWindow(ctk.CTkToplevel):
 #         self.model = LHCModel(**self.params)
 
 class ModelRunNBEATSWindow(ModelRunWindow):
-    def __init__(self,params):
-        super().__init__(params)
+    def __init__(self,params, series_file):
+        super().__init__(params, series_file)
         self.title("N-BEATS - Executando Modelo")
 
     def model_creation(self):
         self.model = NBEATSModel(**self.params)
 
 class ModelRunNHiTSWindow(ModelRunWindow):
-    def __init__(self,params):
-        super().__init__(params)
+    def __init__(self,params,file):
+        super().__init__(params,file)
         self.title("N-HiTS - Executando Modelo")
 
     def model_creation(self):
