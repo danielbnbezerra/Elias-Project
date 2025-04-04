@@ -74,22 +74,6 @@ class Application(ctk.CTk):
                 checkbox = ctk.CTkCheckBox(self.main_selected_options_frame, text=model["name"], variable=var)
                 checkbox.grid(row=i+1, column=0, pady=5)
                 self.checkboxes.append({"checkbox": checkbox, "var": var})
-            # self.checkbox_LHC = ctk.CTkCheckBox(master=self.main_selected_options_frame,
-            #                                            text="LHC",
-            #                                            font=("Arial", 14))
-            # self.checkbox_LHC.grid(row=1, column=0, pady=5)
-            # self.checkbox_NBEATS = ctk.CTkCheckBox(master=self.main_selected_options_frame,
-            #                                     text="N-BEATS",
-            #                                     font=("Arial", 14))
-            # self.checkbox_NBEATS.grid(row=2, column=0, pady=5)
-            # self.checkbox_NHiTS = ctk.CTkCheckBox(master=self.main_selected_options_frame,
-            #                                     text="N-HiTS",
-            #                                     font=("Arial", 14))
-            # self.checkbox_NHiTS.grid(row=3, column=0, pady=5)
-            # self.models = ["LHC Model", "N-BEATS", "N-HiTS"]
-            # self.model_option = ctk.CTkOptionMenu(master=self.main_selected_options_frame, anchor="center", values=self.models)
-            # self.model_option.grid(row=1, column=0, pady=10)
-            # self.model_option.set("Escolha o modelo")  # Define a opção padrão
 
             #Confirmação
             self.choose_model_button = ctk.CTkButton(master=self.main_selected_options_frame, text="Confirmar", command=self.show_parameters)
@@ -112,11 +96,6 @@ class Application(ctk.CTk):
                 ("Dados", "*.csv *.xslx *.NetCDF"),  # permite apenas imagens
             ]
         )
-        # Verificar se o usuário selecionou um arquivo
-        # if arquivo:
-        #     messagebox.showinfo("Arquivo Selecionado", f"Você selecionou: {arquivo}")
-        # else:
-        #     messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
 
     # Criar Submenu
     def create_submenu(self):
@@ -211,23 +190,3 @@ class Application(ctk.CTk):
                 self.new_window.focus()
         else:
             messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
-
-    # def parameter_window(self):
-    #     if self.file:
-    #         messagebox.showinfo("Arquivo Selecionado", f"Você selecionou o arquivo: {self.file}")
-    #         self.window_choices= [self.checkbox_LHC.get(),self.checkbox_NBEATS.get(),self.checkbox_NHiTS.get()]
-    #         self.windows= [LHCModelWindow(self.file),NBEATSModelWindow(self.file),NHiTSModelWindow(self.file)]
-    #         if self.new_window is None or not self.new_window.winfo_exists():
-    #             # if self.model_option.get() == self.models[0]:
-    #             #     self.new_window = LHCModelWindow(self.file)
-    #             # if self.model_option.get() == self.models[1]:
-    #             #     self.new_window = NBEATSModelWindow(self.file)
-    #             # if self.model_option.get() == self.models[2]:
-    #             #     self.new_window = NHiTSModelWindow(self.file)
-    #             for choice in self.window_choices:
-    #                 if choice:
-    #                     self.new_window = ChosenParameterModelWindow(self.file)
-    #         else:
-    #             self.new_window.focus()
-    #     else:
-    #         messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")

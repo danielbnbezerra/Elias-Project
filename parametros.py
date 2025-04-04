@@ -147,7 +147,6 @@ class BasicWindow(ctk.CTkToplevel):
         # Fecha a janela atual e abre a próxima
         self.get_configurations()
         next_model_window = self.selected_models[self.index]["window"]
-        print(next_model_window)
         next_model_window(self.file, self.index+1, self.selected_models, self.configurations)
         self.after(100, self.destroy)
 
@@ -165,18 +164,17 @@ class BasicWindow(ctk.CTkToplevel):
     def bring_fwd_window(self):
         self.attributes("-topmost", True)
 
-    # def model_run(self):
-    #     self.get_parameters()
-    #     self.destroy()
-    #     ModelRunWindow(self.parameters)
-        # model_window = ctk.CTkToplevel(self)
-        # model_window.title("Model Training")
-        # model_window.geometry("400x300")
-        #
-        # # Progress bar for training
-        # progress = ctk.CTkProgressBar(model_window)
-        # progress.pack(pady=20)
-        # progress.set(0.5)
+    def model_run(self):
+        self.get_configurations()
+        inicial_model_run = self.configurations[0]
+        self.configurations.pop(0)
+        if inicial_model_run["model"] == "LHC":
+            ModelRunLHCWindow(inicial_model_run["parameters"], self.configurations, self.file)
+        if inicial_model_run["model"] == "N-BEATS":
+            ModelRunNBEATSWindow(inicial_model_run["parameters"], self.configurations, self.file)
+        if inicial_model_run["model"] == "N-HiTS":
+            ModelRunNHiTSWindow(inicial_model_run["parameters"], self.configurations, self.file)
+        self.after(100, self.destroy)
 
     # def bottom_page_buttons(self):
     #     columns,rows= self.hiperparameter_frame.grid_size()  # Get current grid size
@@ -445,13 +443,13 @@ class NBEATSModelWindow(NModelWindow):
             "save_checkpoints": self.option_save_checkpoints.get()
         }
 
-    def model_run(self):
-        self.get_configurations()
-        print(self.configurations)
-        for i , model in enumerate(self.selected_models):
-            if model["name"] == "N-BEATS":
-                ModelRunNBEATSWindow(self.configurations[i]["parameters"], self.file)
-        self.after(100, self.destroy)
+    # def model_run(self):
+    #     self.get_configurations()
+    #     print(self.configurations,self.selected_models)
+    #     for i , configuration in enumerate(self.configurations):
+    #         if configuration["name"] == "N-BEATS":
+    #             ModelRunNBEATSWindow(self.configurations[i]["parameters"], self.file)
+    #     self.after(100, self.destroy)
 
 
 class NHiTSModelWindow(NModelWindow):
@@ -576,11 +574,10 @@ class NHiTSModelWindow(NModelWindow):
             "save_checkpoints": self.option_save_checkpoints.get()
         }
 
-    def model_run(self): #Model Run genérico, começa por uma varredura do index 0 e segue incrementando.
-        self.get_configurations()
-        print(self.configurations)
-        for i, model in enumerate(self.selected_models):
-            if model["name"] == "N-HiTS":
-                print(i,model, self.selected_models)
-                ModelRunNHiTSWindow(self.configurations[i]["parameters"], self.file)
-        self.after(100, self.destroy)
+    # def model_run(self): #Model Run genérico, começa por uma varredura do index 0 e segue incrementando.
+    #     self.get_configurations()
+    #     print(self.configurations)
+    #     for i, model in enumerate(self.selected_models):
+    #         if model["name"] == "N-HiTS":
+    #             ModelRunNHiTSWindow(self.configurations[i]["parameters"], self.file)
+    #     self.after(100, self.destroy)
