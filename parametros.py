@@ -174,7 +174,7 @@ class BasicWindow(ctk.CTkToplevel):
             ModelRunNBEATSWindow(inicial_model_run["parameters"], self.configurations, self.file)
         if inicial_model_run["model"] == "N-HiTS":
             ModelRunNHiTSWindow(inicial_model_run["parameters"], self.configurations, self.file)
-        self.after(100, self.destroy)
+        self.destroy()
 
     # def bottom_page_buttons(self):
     #     columns,rows= self.hiperparameter_frame.grid_size()  # Get current grid size
@@ -362,16 +362,16 @@ class NBEATSModelWindow(NModelWindow):
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0,"32")
-            self.entry_output_chunck_length.insert(0,"21")
+            self.entry_input_chunck_length.insert(0,"18")
+            self.entry_output_chunck_length.insert(0,"6")
             self.entry_num_stacks.insert(0,"3")
             self.entry_num_blocks.insert(0,"4")
             self.entry_num_layers.insert(0,"3")
             self.entry_layer_widths.insert(0,"5")
-            self.entry_dropout.insert(0,"2")
+            self.entry_dropout.insert(0,"0.3")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epochs.set("500")
+            self.option_n_epochs.set("100")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -379,13 +379,13 @@ class NBEATSModelWindow(NModelWindow):
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "32")
-            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_input_chunck_length.insert(0, "18")
+            self.entry_output_chunck_length.insert(0, "6")
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
             self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "2")
+            self.entry_dropout.insert(0, "0.3")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("750")
@@ -396,13 +396,13 @@ class NBEATSModelWindow(NModelWindow):
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "32")
-            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_input_chunck_length.insert(0, "18")
+            self.entry_output_chunck_length.insert(0, "6")
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
             self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "2")
+            self.entry_dropout.insert(0, "0.3")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("1000")
@@ -429,18 +429,18 @@ class NBEATSModelWindow(NModelWindow):
 
     def get_parameters(self):
         self.parameters = {
-            "input_chunk_length": self.entry_input_chunck_length.get(),
-            "output_chunk_length": self.entry_output_chunck_length.get(),
-            "num_stacks": self.entry_num_stacks.get(),
-            "num_blocks": self.entry_num_blocks.get(),
-            "num_layers": self.entry_num_layers.get(),
-            "layer_widths": self.entry_layer_widths.get(),
-            "n_epochs": self.option_n_epochs.get(),
+            "input_chunk_length": int(self.entry_input_chunck_length.get()),
+            "output_chunk_length": int(self.entry_output_chunck_length.get()),
+            "num_stacks": int(self.entry_num_stacks.get()),
+            "num_blocks": int(self.entry_num_blocks.get()),
+            "num_layers": int(self.entry_num_layers.get()),
+            "layer_widths": int(self.entry_layer_widths.get()),
+            "n_epochs": int(self.option_n_epochs.get()),
             "random_state": self.random_state,
-            "dropout": self.entry_dropout.get(),
+            "dropout": float(self.entry_dropout.get()),
             "activation": self.option_activation.get(),
-            "batch_size": self.option_batch_size.get(),
-            "save_checkpoints": self.option_save_checkpoints.get()
+            "batch_size": int(self.option_batch_size.get()),
+            "save_checkpoints": self.option_save_checkpoints.get().lower()
         }
 
     # def model_run(self):
@@ -493,16 +493,16 @@ class NHiTSModelWindow(NModelWindow):
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "32")
-            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_input_chunck_length.insert(0, "18")
+            self.entry_output_chunck_length.insert(0, "6")
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
             self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "2")
+            self.entry_dropout.insert(0, "0.3")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epochs.set("500")
+            self.option_n_epochs.set("100")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -510,13 +510,13 @@ class NHiTSModelWindow(NModelWindow):
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "32")
-            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_input_chunck_length.insert(0, "18")
+            self.entry_output_chunck_length.insert(0, "6")
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
             self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "2")
+            self.entry_dropout.insert(0, "0.3")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("750")
@@ -527,13 +527,13 @@ class NHiTSModelWindow(NModelWindow):
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "32")
-            self.entry_output_chunck_length.insert(0, "21")
+            self.entry_input_chunck_length.insert(0, "18")
+            self.entry_output_chunck_length.insert(0, "6")
             self.entry_num_stacks.insert(0, "3")
             self.entry_num_blocks.insert(0, "4")
             self.entry_num_layers.insert(0, "3")
             self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "2")
+            self.entry_dropout.insert(0, "0.3")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("1000")
@@ -560,18 +560,18 @@ class NHiTSModelWindow(NModelWindow):
 
     def get_parameters(self):
         self.parameters = {
-            "input_chunk_length": self.entry_input_chunck_length.get(),
-            "output_chunk_length": self.entry_output_chunck_length.get(),
-            "num_stacks": self.entry_num_stacks.get(),
-            "num_blocks": self.entry_num_blocks.get(),
-            "num_layers": self.entry_num_layers.get(),
-            "layer_widths": self.entry_layer_widths.get(),
-            "n_epochs": self.option_n_epochs.get(),
+            "input_chunk_length": int(self.entry_input_chunck_length.get()),
+            "output_chunk_length": int(self.entry_output_chunck_length.get()),
+            "num_stacks": int(self.entry_num_stacks.get()),
+            "num_blocks": int(self.entry_num_blocks.get()),
+            "num_layers": int(self.entry_num_layers.get()),
+            "layer_widths": int(self.entry_layer_widths.get()),
+            "n_epochs": int(self.option_n_epochs.get()),
             "random_state": self.random_state,
-            "dropout": self.entry_dropout.get(),
+            "dropout": float(self.entry_dropout.get()),
             "activation": self.option_activation.get(),
-            "batch_size": self.option_batch_size.get(),
-            "save_checkpoints": self.option_save_checkpoints.get()
+            "batch_size": int(self.option_batch_size.get()),
+            "save_checkpoints": self.option_save_checkpoints.get().lower()
         }
 
     # def model_run(self): #Model Run genérico, começa por uma varredura do index 0 e segue incrementando.
