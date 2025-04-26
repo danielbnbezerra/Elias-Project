@@ -1,10 +1,13 @@
 from series import *
+from plotresults import *
 import customtkinter as ctk
 import torch
 import numpy as np
 import pandas as pd
 from darts.models import NBEATSModel
 from darts.models import NHiTSModel
+
+#FALTA CRIAR PASSAGEM PARA JANELA DE PLOT
 
 class ModelRunWindow(ctk.CTkToplevel):
     def __init__(self, params, configs, series_file=None, series=None, predictions=None):
@@ -24,7 +27,7 @@ class ModelRunWindow(ctk.CTkToplevel):
         if predictions:
             self.predictions = predictions
         else:
-            self.predictions=[]
+            self.predictions={}
         self.model = None
         self.epochs = None
 
@@ -58,9 +61,9 @@ class ModelRunWindow(ctk.CTkToplevel):
             if next_model_run["model"] == "N-HiTS":
                 ModelRunNHiTSWindow(params=next_model_run["parameters"], configs=self.configurations, series=self.series, preds=self.predictions)
             self.destroy()
-        # else:
-        #     ResultsWindow()
-        #     self.after(100, self.destroy)
+        else:
+            PlotWindow(self.series, self.predictions, )
+            self.after(100, self.destroy)
 
     def centralize_window(self):
         # window_width = round(self.winfo_width(),-1)
@@ -110,9 +113,7 @@ class ModelRunNBEATSWindow(ModelRunWindow):
 
     def predict_model(self):
         prediction= self.model.predict(series=self.series.train, n=len(self.series.valid))
-        print(prediction)
-        self.predictions.append({"NBEATS":prediction})
-        print(self.predictions)
+        self.predictions["NBEATS"] = prediction
         self.next_model_run()
 
 class ModelRunNHiTSWindow(ModelRunWindow):
@@ -132,7 +133,5 @@ class ModelRunNHiTSWindow(ModelRunWindow):
 
     def predict_model(self):
         prediction= self.model.predict(series=self.series.train, n=len(self.series.valid))
-        print(prediction)
-        self.predictions.append({"NHiTS":prediction})
-        print(self.predictions)
+        self.predictions["NHiTS"] = prediction
         self.next_model_run()
