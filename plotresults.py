@@ -18,16 +18,6 @@ class PlotWindow(ctk.CTkToplevel):
         self.loss_curves = losses
         self.metrics = MetricModels(series.valid, preds)
         self.title("Visualização de Resultados")
-        self.geometry("1000x600")
-        print("COMEÇO")
-        print("série")
-        print(self.timeseries)
-        print("previsão")
-        print(self.predictions)
-        print("perdas")
-        print(self.loss_curves)
-        print("métricas")
-        print(self.metrics.mape,self.metrics.rmse)
 
         # Layout com 2 colunas
         self.grid_columnconfigure(1, weight=1)
@@ -57,6 +47,9 @@ class PlotWindow(ctk.CTkToplevel):
         self.plot_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
         self.canvas = None
+
+        self.centralize_window()
+        self.bring_fwd_window()
 
     def update_plot(self):
         selections = {k: v.get() for k, v in self.check_vars.items()}
