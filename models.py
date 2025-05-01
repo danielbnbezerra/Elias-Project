@@ -6,11 +6,20 @@ import numpy as np
 import pandas as pd
 from darts.models import NBEATSModel
 from darts.models import NHiTSModel
+from pytorch_lightning.callbacks import Callback
 
-#FALTA CRIAR PASSAGEM PARA JANELA DE PLOT
+class LossTracker(Callback):
+    def __init__(self):
+        self.losses = []
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        # Get the training loss from the callback metrics
+        loss = trainer.callback_metrics.get("train_loss")
+        if loss is not None:
+            self.losses.append(loss.item())
 
 class ModelRunWindow(ctk.CTkToplevel):
-    def __init__(self, params, configs, series_file=None, series=None, predictions=None):
+    def __init__(self, params, configs, series_file=None, series=None, predictions=None, losses=None):
         super().__init__()
         self.grab_set()
         self.grid_propagate(True)
@@ -28,6 +37,10 @@ class ModelRunWindow(ctk.CTkToplevel):
             self.predictions = predictions
         else:
             self.predictions={}
+        if losses:
+            self.losses = losses
+        else:
+            self.losses={}
         self.model = None
         self.epochs = None
 
@@ -57,12 +70,12 @@ class ModelRunWindow(ctk.CTkToplevel):
             next_model_run = self.configurations[0]
             self.configurations.pop(0)
             if next_model_run["model"] == "N-BEATS":
-                ModelRunNBEATSWindow(params=next_model_run["parameters"], configs=self.configurations, series=self.series, preds=self.predictions)
+                ModelRunNBEATSWindow(params=next_model_run["parameters"], configs=self.configurations, series=self.series, preds=self.predictions, losses=self.losses)
             if next_model_run["model"] == "N-HiTS":
-                ModelRunNHiTSWindow(params=next_model_run["parameters"], configs=self.configurations, series=self.series, preds=self.predictions)
+                ModelRunNHiTSWindow(params=next_model_run["parameters"], configs=self.configurations, series=self.series, preds=self.predictions, losses=self.losses)
             self.destroy()
         else:
-            PlotWindow(self.series, self.predictions, )
+            PlotWindow(self.series, self.predictions, self.losses)
             self.after(100, self.destroy)
 
     def centralize_window(self):
@@ -80,8 +93,8 @@ class ModelRunWindow(ctk.CTkToplevel):
         self.attributes("-topmost", True)
 
 class ModelRunLHCWindow(ModelRunWindow):
-    def __init__(self,params, configs, series_file=None, series=None, preds=None):
-        super().__init__(params, configs, series_file, series, preds)
+    def __init__(self,params, configs, series_file=None, series=None, preds=None, losses=None):
+        super().__init__(params, configs, series_file, series, preds, losses)
         self.title("LHC - Executando Modelo")
     #     self.centralize_window()
     #     self.bring_fwd_window()
@@ -97,41 +110,48 @@ class ModelRunLHCWindow(ModelRunWindow):
     #     self.model = LHCModel(**self.params)
 
 class ModelRunNBEATSWindow(ModelRunWindow):
-    def __init__(self, params, configs, series_file=None, series=None, preds=None):
-        super().__init__(params, configs, series_file, series, preds)
+    def __init__(self, params, configs, series_file=None, series=None, preds=None, losses=None):
+        super().__init__(params, configs, series_file, series, preds, losses)
         self.title("N-BEATS - Executando Modelo")
         self.centralize_window()
         self.bring_fwd_window()
 
+        self.loss_tracker = LossTracker()
         self.model_creation()
         self.after(100, self.model_train)
 
     def model_creation(self):
         self.epochs = self.params["n_epochs"]
         self.params["n_epochs"] = 1
+        self.params["pl_trainer_kwargs"] = {"callbacks": [self.loss_tracker]}
         self.model = NBEATSModel(**self.params)
 
     def predict_model(self):
-        prediction= self.model.predict(series=self.series.train, n=len(self.series.valid))
+        prediction = self.model.predict(series=self.series.train, n=len(self.series.valid))
         self.predictions["NBEATS"] = prediction
+        self.losses["NBEATS"] = self.loss_tracker.losses
         self.next_model_run()
 
 class ModelRunNHiTSWindow(ModelRunWindow):
-    def __init__(self, params, configs, series_file=None, series=None, preds=None):
-        super().__init__(params, configs, series_file, series, preds)
+    def __init__(self, params, configs, series_file=None, series=None, preds=None, losses=None):
+        super().__init__(params, configs, series_file, series, preds, losses)
         self.title("N-HiTS - Executando Modelo")
         self.centralize_window()
         self.bring_fwd_window()
 
+        self.loss_tracker = LossTracker()
         self.model_creation()
         self.after(100, self.model_train)
 
     def model_creation(self):
         self.epochs = self.params["n_epochs"]
         self.params["n_epochs"] = 1
+        self.params["pl_trainer_kwargs"] = {"callbacks": [self.loss_tracker]}
         self.model = NHiTSModel(**self.params)
 
     def predict_model(self):
-        prediction= self.model.predict(series=self.series.train, n=len(self.series.valid))
+        prediction = self.model.predict(series=self.series.train, n=len(self.series.valid))
         self.predictions["NHiTS"] = prediction
+        self.losses["NHiTS"] = self.loss_tracker.losses
+        print(self.losses["NHiTS"])
         self.next_model_run()

@@ -2,7 +2,7 @@ import pandas as pd
 #import numpy as np
 #from statsmodels.tsa.tsatools import detrend
 from darts import TimeSeries
-from darts import mape,rmse
+from darts.metrics import mape,rmse
 #from darts.utils.statistics import check_seasonality, plot_acf
 
 class GetSeries:
@@ -26,13 +26,15 @@ class MetricModels:
         self.generate_metrics(series,predictions)
 
     def generate_metrics(self, valid, predictions):
-        for pred in predictions:
-            if pred == "LHC":
-                self.mape["LHC"] = mape(valid, pred["LHC"][:len(valid)]) #Passar a pred do LHC pra TimeSeries
-                self.rmse["LHC"] = rmse(valid, pred["LHC"][:len(valid)])
-            if pred == "NBEATS":
-                self.mape["NBEATS"] = mape(valid, pred["NBEATS"][:len(valid)])
-                self.rmse["LHC"] = rmse(valid, pred["LHC"][:len(valid)])
-            if pred == "NHiTS":
-                self.mape["NHiTS"] = mape(valid, pred["NHiTS"][:len(valid)])
-                self.rmse["LHC"] = rmse(valid, pred["LHC"][:len(valid)])
+
+        models = list(predictions.keys())
+        for model in models:
+            if model == "LHC":
+                self.mape["LHC"] = mape(valid, predictions["LHC"][:len(valid)]) #Passar a pred do LHC pra TimeSeries
+                self.rmse["LHC"] = rmse(valid, predictions["LHC"][:len(valid)])
+            if model == "NBEATS":
+                self.mape["NBEATS"] = mape(valid, predictions["NBEATS"][:len(valid)])
+                self.rmse["NBEATS"] = rmse(valid, predictions["NBEATS"][:len(valid)])
+            if model == "NHiTS":
+                self.mape["NHiTS"] = mape(valid, predictions["NHiTS"][:len(valid)])
+                self.rmse["NHiTS"] = rmse(valid, predictions["NHiTS"][:len(valid)])
