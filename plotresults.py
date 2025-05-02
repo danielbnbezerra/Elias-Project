@@ -28,19 +28,7 @@ class PlotWindow(ctk.CTkToplevel):
         self.plot_menu_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ns")
 
         self.check_vars = {}
-        options = [
-            ("LSTM - Previsão", "lstm_pred"),
-            ("N-BEATS - Previsão", "nbeats_pred"),
-            ("N-HiTS - Previsão", "nhits_pred"),
-            ("LSTM - Curva de Aprendizado", "lstm_loss"),
-            ("N-BEATS - Curva de Aprendizado", "nbeats_loss"),
-            ("N-HiTS - Curva de Aprendizado", "nhits_loss"),
-        ]
-
-        for text, key in options:
-            self.check_vars[key] = ctk.BooleanVar(value=False)
-            cb = ctk.CTkCheckBox(self.plot_menu_frame, text=text, variable=self.check_vars[key], command=self.update_plot)
-            cb.pack(anchor="w", pady=4)
+        self.make_checkboxes()
 
         # Área de plot
         self.plot_frame = ctk.CTkFrame(self)
@@ -51,31 +39,52 @@ class PlotWindow(ctk.CTkToplevel):
         self.centralize_window()
         self.bring_fwd_window()
 
+    def make_checkboxes(self):
+        models = list(self.predictions.keys())
+        options = []
+        for model in models:
+            if model == "LHC":
+                options.append(("LHC - Previsão", "lhc_pred")),
+                options.append(("LHC - Curva de Aprendizado", "lhc_loss"))
+            if model == "NBEATS":
+                options.append(("N-BEATS - Previsão", "nbeats_pred")),
+                options.append(("N-BEATS - Curva de Aprendizado", "nbeats_loss"))
+            if model == "NHiTS":
+                options.append(("N-HiTS - Previsão", "nhits_pred")),
+                options.append(("N-HiTS - Curva de Aprendizado", "nhits_loss"))
+
+        for text, key in options:
+            self.check_vars[key] = ctk.BooleanVar(value=False)
+            cb = ctk.CTkCheckBox(self.plot_menu_frame, text=text, variable=self.check_vars[key],
+                                 command=self.update_plot)
+            cb.pack(anchor="w", pady=4)
+
     def update_plot(self):
         selections = {k: v.get() for k, v in self.check_vars.items()}
         plots = []
 
-        # def get_metrics(y_true, y_pred):
-        #     mae = mean_absolute_error(y_true, y_pred)
-        #     rmse = mean_squared_error(y_true, y_pred) ** 0.5
-        #     return mae, rmse
-
         # Converter TimeSeries para numpy arrays e fazer a comparação
-        if selections["lstm_pred"]:
-            plots.append((f"LSTM\nMAPE: {self.metrics.mape['LHC']:.3f}%, RMSE: {self.metrics.rmse['LHC']:.3f}", self.timeseries, self.predictions["LHC"], "blue"))
+        selections = {k: v.get() for k, v in self.check_vars.items()}
+        plots = []
 
-        if selections["nbeats_pred"]:
-            plots.append((f"N-BEATS\nMAPE: {self.metrics.mape['NBEATS']:.3f}%, RMSE: {self.metrics.rmse['NBEATS']:.3f}", self.timeseries, self.predictions["NBEATS"], "green"))
+        if selections.get("lhc_pred", False):
+            plots.append((f"LHC\nMAPE: {self.metrics.mape['LHC']:.3f}%, RMSE: {self.metrics.rmse['LHC']:.3f}",
+                          self.timeseries, self.predictions["LHC"], "blue"))
 
-        if selections["nhits_pred"]:
-            plots.append((f"N-HiTS\nMAPE: {self.metrics.mape['NBEATS']:.3f}%, RMSE: {self.metrics.rmse['NHiTS']:.3f}", self.timeseries, self.predictions["NHiTS"], "red"))
+        if selections.get("nbeats_pred", False):
+            plots.append((f"N-BEATS\nMAPE: {self.metrics.mape['NBEATS']:.3f}%, RMSE: {self.metrics.rmse['NBEATS']:.3f}",
+                          self.timeseries, self.predictions["NBEATS"], "green"))
+
+        if selections.get("nhits_pred", False):
+            plots.append((f"N-HiTS\nMAPE: {self.metrics.mape['NHiTS']:.3f}%, RMSE: {self.metrics.rmse['NHiTS']:.3f}",
+                          self.timeseries, self.predictions["NHiTS"], "red"))
 
         learning_curves = []
-        if selections["lstm_loss"]:
-            learning_curves.append(("LSTM Loss", self.loss_curves["LHC"], "blue"))
-        if selections["nbeats_loss"]:
+        if selections.get("lhc_loss", False):
+            learning_curves.append(("LHC Loss", self.loss_curves["LHC"], "blue"))
+        if selections.get("nbeats_loss", False):
             learning_curves.append(("N-BEATS Loss", self.loss_curves["NBEATS"], "green"))
-        if selections["nhits_loss"]:
+        if selections.get("nhits_loss", False):
             learning_curves.append(("N-HiTS Loss", self.loss_curves["NHiTS"], "red"))
 
         total_plots = len(plots) + (1 if learning_curves else 0)
