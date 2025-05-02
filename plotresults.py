@@ -34,6 +34,7 @@ class PlotWindow(ctk.CTkToplevel):
         self.plot_frame = ctk.CTkFrame(self)
         self.plot_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
+        #Iniciando o canvas
         self.canvas = None
 
         self.centralize_window()
