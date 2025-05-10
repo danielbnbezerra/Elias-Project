@@ -6,13 +6,7 @@ class Application(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Projeto Elias")
-        app_width= 400
-        app_height= 300
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        x= screen_width/2 - app_width/2
-        y= screen_height/2 - app_height/2
-        self.geometry(f"{app_width}x{app_height}+{int(x)}+{int(y)} ")
+        self.centralize_window()
         self.protocol("WM_DELETE_WINDOW", self.confirm_exit)
         self.create_submenu()
         self.new_window = None
@@ -190,3 +184,12 @@ class Application(ctk.CTk):
                 self.new_window.focus()
         else:
             messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
+
+    def centralize_window(self):
+        window_width = 400
+        window_height = 300
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        x = round((screen_width - window_width) // 2, -1)
+        y = round((screen_height - window_height) // 2, -1)
+        self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
