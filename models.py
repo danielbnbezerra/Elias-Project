@@ -1,5 +1,6 @@
 from series import *
 from plotresults import *
+import lhcmodel
 import customtkinter as ctk
 import torch
 import numpy as np

@@ -196,18 +196,131 @@ class LHCModelWindow(BasicWindow):
         self.title("LHC - Escolha os Parâmetros")
         # self.model = LHCModel
 
-    # def clean_parameters(self):
-    #     self.entry_input_chunck_length.delete(0,"end")
-    #     self.entry_output_chunck_length.delete(0,"end")
-    #     self.entry_num_stacks.delete(0,"end")
-    #     self.entry_num_blocks.delete(0,"end")
-    #     self.entry_num_layers.delete(0,"end")
-    #     self.entry_layer_width.delete(0,"end")
-    #     self.entry_dropout.delete(0,"end")
-    #     self.option_activation.set("Selecione")
-    #     self.option_batch_size.set("Selecione")
-    #     self.option_n_epoch.set("Selecione/Digite")
-    #     self.option_save_checkpoint.set("Selecione")
+        #EDITAR AS ENTRADAS DO MODELO NA JANELA
+
+        # Random State
+        self.random_state = 42
+
+        # Input Size
+        self.label_input_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Input Chunck Length:",
+                                                      font=("Arial", 14))
+        self.label_input_size.grid(row=0, column=0, padx=5)
+        self.entry_input_size = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
+                                                      state="disabled")
+        self.entry_input_size.grid(row=0, column=1, padx=5)
+
+        # Output Chunk Length
+        self.label_output_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Output Chunck Length:",
+                                                       font=("Arial", 14))
+        self.label_output_chunck_length.grid(row=1, column=0, padx=5)
+        self.entry_output_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
+                                                       state="disabled")
+        self.entry_output_chunck_length.grid(row=1, column=1, padx=5)
+
+        # Number of Stacks
+        self.label_num_stacks = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Stacks:",
+                                             font=("Arial", 14))
+        self.label_num_stacks.grid(row=2, column=0, padx=5, pady=5)
+        self.entry_num_stacks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
+        self.entry_num_stacks.grid(row=2, column=1, padx=5, pady=5)
+
+        # Number of Blocks
+        self.label_num_blocks = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Blocks:",
+                                             font=("Arial", 14))
+        self.label_num_blocks.grid(row=3, column=0, padx=5, pady=5)
+        self.entry_num_blocks = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
+        self.entry_num_blocks.grid(row=3, column=1, padx=5, pady=5)
+
+        # Number of Layers
+        self.label_num_layers = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Layers:",
+                                             font=("Arial", 14))
+        self.label_num_layers.grid(row=4, column=0, padx=5, pady=5)
+        self.entry_num_layers = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
+        self.entry_num_layers.grid(row=4, column=1, padx=5, pady=5)
+
+        # Layer Width
+        self.label_layer_widths = ctk.CTkLabel(master=self.hiperparameter_frame, text="Layer Width:",
+                                               font=("Arial", 14))
+        self.label_layer_widths.grid(row=0, column=2, padx=5, pady=5)
+        self.entry_layer_widths = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
+        self.entry_layer_widths.grid(row=0, column=3, padx=5, pady=5)
+
+        # Dropout
+        self.label_dropout = ctk.CTkLabel(master=self.hiperparameter_frame, text="Dropout:", font=("Arial", 14))
+        self.label_dropout.grid(row=1, column=2, padx=5, pady=5)
+        self.entry_dropout = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
+        self.entry_dropout.grid(row=1, column=3, padx=5, pady=5)
+
+        # Activation
+        self.label_activation = ctk.CTkLabel(master=self.hiperparameter_frame, text="Activation:", font=("Arial", 14))
+        self.label_activation.grid(row=2, column=2, padx=5, pady=5)
+        self.activation_functions = ['ReLU', 'RReLU', 'PReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid']
+        self.option_activation = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.activation_functions,
+                                                   state="disabled")
+        self.option_activation.set("Selecione")
+        self.option_activation.grid(row=2, column=3, padx=5, pady=5)
+
+        # Batch Size
+        self.label_batch_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Batch Size:", font=("Arial", 14))
+        self.label_batch_size.grid(row=3, column=2, padx=5, pady=5)
+        self.batch_sizes = ['16', '32', '64', '128', '256', '512', '1024']
+        self.option_batch_size = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.batch_sizes,
+                                                   state="disabled")
+        self.option_batch_size.set("Selecione")
+        self.option_batch_size.grid(row=3, column=3, padx=5, pady=5)
+
+        # Number of Epochs
+        self.label_n_epochs = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Epochs:", font=("Arial", 14))
+        self.label_n_epochs.grid(row=4, column=2, padx=5, pady=5)
+        self.n_epochs = ['100', '200', '300', '400', '500', '1000']
+        self.option_n_epochs = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_epochs, state="disabled")
+        self.option_n_epochs.set("Selecione/Digite")
+        self.option_n_epochs.grid(row=4, column=3, padx=5, pady=5)
+
+        # Save Checkpoints
+        self.label_save_checkpoints = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoints:",
+                                                   font=("Arial", 14))
+        self.label_save_checkpoints.grid(row=0, column=4, padx=5, pady=5)
+        self.boolean_options = ['True', 'False']
+        self.option_save_checkpoints = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options,
+                                                         state="disabled")
+        self.option_save_checkpoints.set("Selecione")
+        self.option_save_checkpoints.grid(row=0, column=5, padx=5, pady=5)
+
+        # self.bottom_page_buttons()
+
+        Tooltip(self.label_input_chunck_length, text="Tamanho da entrada de dados(número).")
+        Tooltip(self.label_output_chunck_length, text="Tamanho da saída de dados(número).")
+        Tooltip(self.label_num_stacks, text="Quantidade de Stacks que constituem o modelo(número).")
+        Tooltip(self.label_num_blocks, text="Quantidade de blocos que constituem uma Stack(número).")
+        Tooltip(self.label_num_layers,
+                text="Quantidade de camadas totalmente conectadas que precedem a camada final e que compõem cada bloco de cada Stack(número).")
+        Tooltip(self.label_layer_widths,
+                text="Determina o número de neurônios que compõem cada camada totalmente conectada em cada bloco de cada pilha. \n "
+                     "Se uma lista for passada, ela deve ter um comprimento igual a num_stacks, e cada entrada dessa lista corresponderá \n"
+                     "à largura das camadas da pilha correspondente. Se um número inteiro for passado, todas as pilhas terão blocos com \n"
+                     "camadas totalmente conectadas da mesma largura. (União[números, Lista[números]])")
+        Tooltip(self.label_dropout,
+                text="A probabilidade de dropout a ser utilizada nas camadas totalmente conectadas.")
+        Tooltip(self.label_activation, text="Função de ativação utilizada no modelo.")
+        Tooltip(self.label_batch_size,
+                text="Número de séries temporais (sequências de entrada e saída) utilizadas em cada passagem de treinamento.")
+        Tooltip(self.label_n_epochs, text="Número de épocas em cada rodada de treinamento do modelo.")
+        Tooltip(self.label_save_checkpoints,
+                text="Define se o modelo não treinado e os checkpoints do treinamento serão salvos automaticamente.")
+
+    def clean_parameters(self):
+        self.entry_input_.delete(0,"end")
+        self.entry_output_chunck_length.delete(0,"end")
+        self.entry_num_stacks.delete(0,"end")
+        self.entry_num_blocks.delete(0,"end")
+        self.entry_num_layers.delete(0,"end")
+        self.entry_layer_width.delete(0,"end")
+        self.entry_dropout.delete(0,"end")
+        self.option_activation.set("Selecione")
+        self.option_batch_size.set("Selecione")
+        self.option_n_epoch.set("Selecione/Digite")
+        self.option_save_checkpoint.set("Selecione")
 
     # def confg_event(self, choice): # A DEFINIR
     #     if choice == 'Opção 1':
