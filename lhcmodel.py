@@ -39,7 +39,6 @@ class LHCModel(nn.Module):
         out = self.fc(out)
         return out
 
-
 #APENAS DENTRO DA JANELA QUANDO FOR TREINAR
 
 # model = LHCModel(input_size, hidden_size, num_layers, output_size).to(device)
