@@ -12,7 +12,6 @@ from darts import TimeSeries
 from series import MetricModels
 
 #FALTA INTEGRAR EXEMPLO 20 AQUI
-
 class PlotWindow(ctk.CTkToplevel):
     def __init__(self, series, preds, losses):
         super(PlotWindow, self).__init__()
