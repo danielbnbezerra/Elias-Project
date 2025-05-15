@@ -14,6 +14,7 @@ input_size = 28 #Qtd de variáveis de entrada
 sequence_length = 28 #Tamanho da janela
 hidden_size = 128 #Qtd de janelas passadas
 num_layers = 2
+
 # Fully connected neural network with one hidden layer
 class LHCModel(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
