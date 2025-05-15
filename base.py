@@ -18,6 +18,7 @@ class Application(ctk.CTk):
             {"window": NHiTSModelWindow,"name":"N-HiTS"}
         ]
         self.checkboxes = []
+
     # Configurações iniciais
         ctk.set_appearance_mode("light")  # "light", "dark", "system"
         ctk.set_default_color_theme("dark-blue")  # Temas: "blue", "green", "dark-blue"
