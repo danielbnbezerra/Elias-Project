@@ -8,7 +8,6 @@ from torch import save as torch_save
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_pdf import PdfPages
 from darts import TimeSeries
-
 from series import MetricModels
 
 #FALTA INTEGRAR EXEMPLO 20 AQUI
