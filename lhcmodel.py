@@ -1,8 +1,27 @@
 import torch
 import torch.nn as nn
+import numpy as np
+import random
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+seed = 42
+print(device)
+if device == 'cuda':
+    # Se estiver usando CUDA:
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True #Para consistência
+    torch.backends.cudnn.benchmark = False
+    # torch.backends.cudnn.deterministic = False #Para desempenho
+    # torch.backends.cudnn.benchmark = True
+
+else:
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+
 
 # Hyper-parameters
 output_size = 10 # Qtd de variáveis de saída
@@ -14,6 +33,7 @@ input_size = 28 #Qtd de variáveis de entrada
 sequence_length = 28 #Tamanho da janela
 hidden_size = 128 #Qtd de janelas passadas
 num_layers = 2
+dropout=0.003
 
 # Fully connected neural network with one hidden layer
 class LHCModel(nn.Module):
@@ -21,7 +41,6 @@ class LHCModel(nn.Module):
         super(LHCModel, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
-        # -> x needs to be: (batch_size, seq, input_size)
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, output_size)
 
