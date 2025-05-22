@@ -260,17 +260,14 @@ class LHCModelWindow(BasicWindow):
         Tooltip(self.label_input_size, text="Qtd de variáveis de entrada. No caso de série univariada, o valor é 1.")
         Tooltip(self.label_sequence_length, text="Determina o tamanho da janela de valores de entrada no modelo.")
         Tooltip(self.label_output_size, text="Qtd de variáveis de saída. No caso de previsão univariada, o valor é 1.")
-        Tooltip(self.label_num_layers, text="Quantidade de camadas totalmente conectadas que precedem a camada final e que compõem cada bloco de cada Stack(número).")
-        # Tooltip(self.label_hidden_size,
-        #         text="Determina o número de neurônios que compõem cada camada totalmente conectada em cada bloco de cada pilha.")
-        # Tooltip(self.label_dropout,
-        #         text="A probabilidade de dropout a ser utilizada nas camadas totalmente conectadas.")
-        # Tooltip(self.label_activation, text="Função de ativação utilizada no modelo.")
-        # Tooltip(self.label_batch_size,
-        #         text="Número de séries temporais (sequências de entrada e saída) utilizadas em cada passagem de treinamento.")
-        # Tooltip(self.label_n_epochs, text="Número de épocas em cada rodada de treinamento do modelo.")
-        # Tooltip(self.label_save_checkpoints,
-        #         text="Define se o modelo não treinado e os checkpoints do treinamento serão salvos automaticamente.")
+        Tooltip(self.label_num_layers, text="Quantidade de camadas LSTM totalmente conectadas.")
+        Tooltip(self.label_hidden_size, text="Determina o número de features na camada oculta a serem aprendidos em cada tempo t.")
+        Tooltip(self.label_dropout, text="A probabilidade de dropout a ser utilizada nas camadas totalmente conectadas.\n"
+                                         "Recomenda-se entre 0.0 e 0.5.")
+        Tooltip(self.label_batch_size, text="Número de amostras processadas por vez até que a atualização\n"
+                                            "dos pesos em cada passagem de treinamento seja realizada.")
+        Tooltip(self.label_learning_rate, text="Define a taxa de aprendizado por época.")
+        Tooltip(self.label_n_epochs, text="Número de épocas em cada rodada de treinamento do modelo.")
 
         self.centralize_window(710,200)
         self.bring_fwd_window()
@@ -283,6 +280,7 @@ class LHCModelWindow(BasicWindow):
         self.entry_num_layers.configure(state="disabled")
         self.entry_dropout.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
+        self.entry_learning_rate.configure(state="disabled")
         self.option_n_epochs.configure(state="disabled")
 
     def enable_parameters(self):
@@ -293,24 +291,23 @@ class LHCModelWindow(BasicWindow):
         self.entry_num_layers.configure(state="normal")
         self.entry_dropout.configure(state="normal")
         self.option_batch_size.configure(state="normal")
+        self.entry_learning_rate.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
 
-    def confg_event(self, choice):  # A DEFINIR ESCOLHAS DE VALORES AINDA
+    def confg_event(self, choice):
         if choice == 'Opção 1':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
             self.entry_input_size.insert(0, "1")
             self.entry_sequence_length.insert(0, "7")
-            self.entry_num_stacks.insert(0, "3")
-            self.entry_num_blocks.insert(0, "4")
-            self.entry_num_layers.insert(0, "3")
-            self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "0.3")
-            self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
+            self.entry_output_size.insert(0,"1")
+            self.entry_hidden_size.insert(0,"32")
+            self.entry_num_layers.insert(0, "1")
+            self.entry_dropout.insert(0, "0.0")
+            self.entry_learning_rate.insert(0,"0.01")
+            self.option_batch_size.set("32")
             self.option_n_epochs.set("100")
-            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Opção 2':
@@ -318,16 +315,14 @@ class LHCModelWindow(BasicWindow):
             self.enable_parameters()
             self.clean_parameters()
             self.entry_input_size.insert(0, "1")
-            self.entry_sequence_length.insert(0, "14")
-            self.entry_num_stacks.insert(0, "3")
-            self.entry_num_blocks.insert(0, "4")
-            self.entry_num_layers.insert(0, "3")
-            self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "0.3")
-            self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
-            self.option_n_epochs.set("750")
-            self.option_save_checkpoints.set("True")
+            self.entry_sequence_length.insert(0, "7")
+            self.entry_output_size.insert(0, "1")
+            self.entry_hidden_size.insert(0, "32")
+            self.entry_num_layers.insert(0, "1")
+            self.entry_dropout.insert(0, "0.0")
+            self.entry_learning_rate.insert(0, "0.01")
+            self.option_batch_size.set("32")
+            self.option_n_epochs.set("100")
             self.disable_parameters()
 
         if choice == 'Opção 3':
@@ -335,16 +330,14 @@ class LHCModelWindow(BasicWindow):
             self.enable_parameters()
             self.clean_parameters()
             self.entry_input_size.insert(0, "1")
-            self.entry_sequence_length.insert(0, "30")
-            self.entry_num_stacks.insert(0, "3")
-            self.entry_num_blocks.insert(0, "4")
-            self.entry_num_layers.insert(0, "3")
-            self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "0.3")
-            self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
-            self.option_n_epochs.set("1000")
-            self.option_save_checkpoints.set("True")
+            self.entry_sequence_length.insert(0, "7")
+            self.entry_output_size.insert(0, "1")
+            self.entry_hidden_size.insert(0, "32")
+            self.entry_num_layers.insert(0, "1")
+            self.entry_dropout.insert(0, "0.0")
+            self.entry_learning_rate.insert(0, "0.01")
+            self.option_batch_size.set("32")
+            self.option_n_epochs.set("100")
             self.disable_parameters()
 
         if choice == 'Manual':
@@ -353,32 +346,28 @@ class LHCModelWindow(BasicWindow):
             self.clean_parameters()
 
     def clean_parameters(self):
-        self.entry_input_chunck_length.delete(0, "end")
-        self.entry_output_chunck_length.delete(0, "end")
-        self.entry_num_stacks.delete(0, "end")
-        self.entry_num_blocks.delete(0, "end")
+        self.entry_input_size.delete(0, "end")
+        self.entry_sequence_length.delete(0, "end")
+        self.entry_output_size.delete(0, "end")
+        self.entry_hidden_size.delete(0, "end")
         self.entry_num_layers.delete(0, "end")
-        self.entry_layer_widths.delete(0, "end")
         self.entry_dropout.delete(0, "end")
-        self.option_activation.set("Selecione")
+        self.entry_learning_rate.delete(0, "end")
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
-        self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
         self.parameters = {
-            "input_chunk_length": int(self.entry_input_chunck_length.get()),
-            "output_chunk_length": int(self.entry_output_chunck_length.get()),
-            "num_stacks": int(self.entry_num_stacks.get()),
-            "num_blocks": int(self.entry_num_blocks.get()),
+            "input_size": int(self.entry_input_size.get()),
+            "sequence_length": int(self.self.entry_sequence_length.get()),
+            "output_size": int(self.entry_output_size.get()),
             "num_layers": int(self.entry_num_layers.get()),
-            "layer_widths": int(self.entry_layer_widths.get()),
+            "hidden_size": int(self.entry_hidden_size.get()),
             "n_epochs": int(self.option_n_epochs.get()),
             "random_state": self.random_state,
             "dropout": float(self.entry_dropout.get()),
-            "activation": self.option_activation.get(),
             "batch_size": int(self.option_batch_size.get()),
-            "save_checkpoints": self.option_save_checkpoints.get().lower()
+            "learning_rate": float(self.entry_learning_rate.get())
         }
 
 class NModelWindow(BasicWindow):
