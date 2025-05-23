@@ -3,25 +3,6 @@ import torch.nn as nn
 import numpy as np
 import random
 
-# Device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-seed = 42
-print(device)
-if device == 'cuda':
-    # Se estiver usando CUDA:
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True #Para consistência
-    torch.backends.cudnn.benchmark = False
-    # torch.backends.cudnn.deterministic = False #Para desempenho
-    # torch.backends.cudnn.benchmark = True
-
-else:
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-
 
 # Hyper-parameters
 output_size = 10 # Qtd de variáveis de saída
@@ -34,6 +15,13 @@ sequence_length = 28 #Tamanho da janela
 hidden_size = 128 #Qtd de janelas passadas
 num_layers = 2
 dropout=0.003
+
+
+
+def set_device():
+    # Device configuration
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    return device
 
 # Fully connected neural network with one hidden layer
 class LHCModel(nn.Module):
@@ -58,48 +46,49 @@ class LHCModel(nn.Module):
         out = self.fc(out)
         return out
 
+
 #APENAS DENTRO DA JANELA QUANDO FOR TREINAR
 
-# model = LHCModel(input_size, hidden_size, num_layers, output_size).to(device)
-#
-# # Loss and optimizer
-# criterion = nn.MSELoss()
-# optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-#
-# # Train the model
-# n_total_steps = len(train_loader)
-# for epoch in range(num_epochs):
-#     for i, (images, labels) in enumerate(train_loader):
-#         # origin shape: [N, 1, 28, 28]
-#         # resized: [N, 28, 28]
-#         images = images.reshape(-1, sequence_length, input_size).to(device)
-#         labels = labels.to(device)
-#
-#         # Forward pass
-#         outputs = model(images)
-#         loss = criterion(outputs, labels)
-#
-#         # Backward and optimize
-#         optimizer.zero_grad()
-#         loss.backward()
-#         optimizer.step()
-#
-#         if (i + 1) % 100 == 0:
-#             print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{n_total_steps}], Loss: {loss.item():.4f}')
-#
-# # Test the model
-# # In test phase, we don't need to compute gradients (for memory efficiency)
-# with torch.no_grad():
-#     n_correct = 0
-#     n_samples = 0
-#     for images, labels in test_loader:
-#         images = images.reshape(-1, sequence_length, input_size).to(device)
-#         labels = labels.to(device)
-#         outputs = model(images)
-#         # max returns (value ,index)
-#         _, predicted = torch.max(outputs.data, 1)
-#         n_samples += labels.size(0)
-#         n_correct += (predicted == labels).sum().item()
-#
-#     acc = 100.0 * n_correct / n_samples
-#     print(f'Accuracy of the network on the 10000 test images: {acc} %')
+model = LHCModel(input_size, hidden_size, num_layers, output_size).to(device)
+
+# Loss and optimizer
+criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+# Train the model
+n_total_steps = len(train_loader)
+for epoch in range(num_epochs):
+    for i, (images, labels) in enumerate(train_loader):
+        # origin shape: [N, 1, 28, 28]
+        # resized: [N, 28, 28]
+        images = images.reshape(-1, sequence_length, input_size).to(device)
+        labels = labels.to(device)
+
+        # Forward pass
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if (i + 1) % 100 == 0:
+            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{n_total_steps}], Loss: {loss.item():.4f}')
+
+# Test the model
+# In test phase, we don't need to compute gradients (for memory efficiency)
+with torch.no_grad():
+    n_correct = 0
+    n_samples = 0
+    for images, labels in test_loader:
+        images = images.reshape(-1, sequence_length, input_size).to(device)
+        labels = labels.to(device)
+        outputs = model(images)
+        # max returns (value ,index)
+        _, predicted = torch.max(outputs.data, 1)
+        n_samples += labels.size(0)
+        n_correct += (predicted == labels).sum().item()
+
+    acc = 100.0 * n_correct / n_samples
+    print(f'Accuracy of the network on the 10000 test images: {acc} %')

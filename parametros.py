@@ -712,11 +712,3 @@ class NHiTSModelWindow(NModelWindow):
             "batch_size": int(self.option_batch_size.get()),
             "save_checkpoints": self.option_save_checkpoints.get().lower()
         }
-
-    # def model_run(self): #Model Run genérico, começa por uma varredura do index 0 e segue incrementando.
-    #     self.get_configurations()
-    #     print(self.configurations)
-    #     for i, model in enumerate(self.selected_models):
-    #         if model["name"] == "N-HiTS":
-    #             ModelRunNHiTSWindow(self.configurations[i]["parameters"], self.file)
-    #     self.after(100, self.destroy)

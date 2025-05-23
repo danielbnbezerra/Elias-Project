@@ -1,6 +1,6 @@
 from series import *
 from plotresults import *
-import lhcmodel
+from lhcmodel import *
 import customtkinter as ctk
 import torch
 import numpy as np
@@ -50,16 +50,6 @@ class ModelRunWindow(ctk.CTkToplevel):
         self.progress.grid(row=0, column=0, pady=20)
         self.progress.set(0)
 
-
-    def model_train(self):
-        print(self.series.train,self.series.valid)
-        for epoch in range(self.epochs):
-            self.model.fit(series=self.series.train, val_series=self.series.valid)
-            self.update_progress(epoch)
-        if self.params['save_checkpoints'] == 'true':
-            self.model = NBEATSModel.load_from_checkpoint(self.model.model_name)
-        self.predict_model()
-
     def update_progress(self,epoch):
         progress_value = (epoch + 1) / self.epochs
         self.progress.set(progress_value)
@@ -97,18 +87,49 @@ class ModelRunLHCWindow(ModelRunWindow):
     def __init__(self,params, configs, series_file=None, series=None, preds=None, losses=None):
         super().__init__(params, configs, series_file, series, preds, losses)
         self.title("LHC - Executando Modelo")
-    #     self.centralize_window()
-    #     self.bring_fwd_window()
+        self.centralize_window()
+        self.bring_fwd_window()
+
+        self.device = set_device()
+        self.seed = self.params["random_state"]
+        if self.device == 'cuda':
+            # Se estiver usando CUDA:
+            torch.cuda.manual_seed(self.seed)
+            torch.cuda.manual_seed_all(self.seed)
+            torch.backends.cudnn.deterministic = True  # Para consistência
+            torch.backends.cudnn.benchmark = False
+            # torch.backends.cudnn.deterministic = False #Para desempenho
+            # torch.backends.cudnn.benchmark = True
+        else:
+            torch.manual_seed(self.seed)
+            np.random.seed(self.seed)
+            random.seed(self.seed)
+        self.model_creation()
+        self.after(100, self.model_train)
+
+    def model_creation(self):
+        self.epochs = self.params["n_epochs"]
+        self.params["n_epochs"] = 1
+        self.model = LHCModel(input_size=self.params["input_size"],
+                              hidden_size=self.params["hidden_size"],
+                              num_layers=self.params["num_layers"],
+                              output_size=self.params["output_size"]).to(self.device)
+                              # random_state=self.params["random_state"])
+
+    #A DEFINIR
+
+    # def model_train(self):
+    #     print(self.series.train,self.series.valid)
+    #     for epoch in range(self.epochs):
+    #         self.model.fit(series=self.series.train, val_series=self.series.valid)
+    #         self.update_progress(epoch)
+    #     self.predict_model()
     #
-    #     self.model_creation()
-    #     self.after(100, self.model_train)
-    #     self.evaluate_model()
+    # def predict_model(self):
+    #     prediction = self.model.predict(series=self.series.train, n=len(self.series.valid))
+    #     self.predictions["NBEATS"] = prediction
+    #     self.losses["NBEATS"] = self.loss_tracker.losses
     #     self.next_model_run()
-    #
-    # def model_creation(self):
-    #     self.epochs = self.params["n_epochs"]
-    #     self.params["n_epochs"] = 1
-    #     self.model = LHCModel(**self.params)
 
 class ModelRunNBEATSWindow(ModelRunWindow):
     def __init__(self, params, configs, series_file=None, series=None, preds=None, losses=None):
@@ -126,6 +147,15 @@ class ModelRunNBEATSWindow(ModelRunWindow):
         self.params["n_epochs"] = 1
         self.params["pl_trainer_kwargs"] = {"callbacks": [self.loss_tracker]}
         self.model = NBEATSModel(**self.params)
+
+    def model_train(self):
+        print(self.series.train,self.series.valid)
+        for epoch in range(self.epochs):
+            self.model.fit(series=self.series.train, val_series=self.series.valid)
+            self.update_progress(epoch)
+        if self.params['save_checkpoints'] == 'true':
+            self.model = NBEATSModel.load_from_checkpoint(self.model.model_name)
+        self.predict_model()
 
     def predict_model(self):
         prediction = self.model.predict(series=self.series.train, n=len(self.series.valid))
@@ -149,6 +179,15 @@ class ModelRunNHiTSWindow(ModelRunWindow):
         self.params["n_epochs"] = 1
         self.params["pl_trainer_kwargs"] = {"callbacks": [self.loss_tracker]}
         self.model = NHiTSModel(**self.params)
+
+    def model_train(self):
+        print(self.series.train,self.series.valid)
+        for epoch in range(self.epochs):
+            self.model.fit(series=self.series.train, val_series=self.series.valid)
+            self.update_progress(epoch)
+        if self.params['save_checkpoints'] == 'true':
+            self.model = NHiTSModel.load_from_checkpoint(self.model.model_name)
+        self.predict_model()
 
     def predict_model(self):
         prediction = self.model.predict(series=self.series.train, n=len(self.series.valid))
