@@ -47,48 +47,48 @@ class LHCModel(nn.Module):
         return out
 
 
-#APENAS DENTRO DA JANELA QUANDO FOR TREINAR
-
-model = LHCModel(input_size, hidden_size, num_layers, output_size).to(device)
-
-# Loss and optimizer
-criterion = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-# Train the model
-n_total_steps = len(train_loader)
-for epoch in range(num_epochs):
-    for i, (images, labels) in enumerate(train_loader):
-        # origin shape: [N, 1, 28, 28]
-        # resized: [N, 28, 28]
-        images = images.reshape(-1, sequence_length, input_size).to(device)
-        labels = labels.to(device)
-
-        # Forward pass
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-
-        # Backward and optimize
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        if (i + 1) % 100 == 0:
-            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{n_total_steps}], Loss: {loss.item():.4f}')
-
-# Test the model
-# In test phase, we don't need to compute gradients (for memory efficiency)
-with torch.no_grad():
-    n_correct = 0
-    n_samples = 0
-    for images, labels in test_loader:
-        images = images.reshape(-1, sequence_length, input_size).to(device)
-        labels = labels.to(device)
-        outputs = model(images)
-        # max returns (value ,index)
-        _, predicted = torch.max(outputs.data, 1)
-        n_samples += labels.size(0)
-        n_correct += (predicted == labels).sum().item()
-
-    acc = 100.0 * n_correct / n_samples
-    print(f'Accuracy of the network on the 10000 test images: {acc} %')
+# #APENAS DENTRO DA JANELA QUANDO FOR TREINAR
+#
+# model = LHCModel(input_size, hidden_size, num_layers, output_size).to(device)
+#
+# # Loss and optimizer
+# criterion = nn.MSELoss()
+# optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+#
+# # Train the model
+# n_total_steps = len(train_loader)
+# for epoch in range(num_epochs):
+#     for i, (images, labels) in enumerate(train_loader):
+#         # origin shape: [N, 1, 28, 28]
+#         # resized: [N, 28, 28]
+#         images = images.reshape(-1, sequence_length, input_size).to(device)
+#         labels = labels.to(device)
+#
+#         # Forward pass
+#         outputs = model(images)
+#         loss = criterion(outputs, labels)
+#
+#         # Backward and optimize
+#         optimizer.zero_grad()
+#         loss.backward()
+#         optimizer.step()
+#
+#         if (i + 1) % 100 == 0:
+#             print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{n_total_steps}], Loss: {loss.item():.4f}')
+#
+# # Test the model
+# # In test phase, we don't need to compute gradients (for memory efficiency)
+# with torch.no_grad():
+#     n_correct = 0
+#     n_samples = 0
+#     for images, labels in test_loader:
+#         images = images.reshape(-1, sequence_length, input_size).to(device)
+#         labels = labels.to(device)
+#         outputs = model(images)
+#         # max returns (value ,index)
+#         _, predicted = torch.max(outputs.data, 1)
+#         n_samples += labels.size(0)
+#         n_correct += (predicted == labels).sum().item()
+#
+#     acc = 100.0 * n_correct / n_samples
+#     print(f'Accuracy of the network on the 10000 test images: {acc} %')

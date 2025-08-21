@@ -359,7 +359,7 @@ class LHCModelWindow(BasicWindow):
     def get_parameters(self):
         self.parameters = {
             "input_size": int(self.entry_input_size.get()),
-            "sequence_length": int(self.self.entry_sequence_length.get()),
+            "sequence_length": int(self.entry_sequence_length.get()),
             "output_size": int(self.entry_output_size.get()),
             "num_layers": int(self.entry_num_layers.get()),
             "hidden_size": int(self.entry_hidden_size.get()),
