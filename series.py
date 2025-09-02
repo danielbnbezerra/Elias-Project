@@ -1,5 +1,6 @@
 import cfgrib
 import os
+import subprocess
 import datetime
 import pandas as pd
 #import numpy as np
@@ -212,74 +213,63 @@ def monthlist_Fast(dates):
     mlist.append(datetime(y, m+1, 1).strftime("%b/%Y"))
   return mlist
 
-def code_ld_with_powershell:
-    dir_arq = "DadosGFS"
+#Funções de Aquisição de Dados
 
-    # DEFINIR ORDER ID
+def download_GFS_data(orderID="HAS012640249"): #ID do request atual é o padrão. Idealmente não existe padrão pois os request duram dias.
 
-    orderID = "HAS012378593"
-
-    # DEFINIR DATAS
-
-    dia_inicio = 10
-    mes_inicio = 4
-    ano_inicio = 2014
-
-    dia_fim = 9
-    mes_fim = 4
-    ano_fim = ano_inicio + 1
-
-    dias = ["0" + str(x) for x in list(range(1, 10))] + [str(x) for x in list(range(10, 32))]
-    meses = ["0" + str(x) for x in list(range(1, 10))] + [str(x) for x in list(range(10, 13))]
-    anos = [str(x) for x in list(range(ano_inicio, ano_fim + 1))]
-
-    # BAIXAR ARQUIVOS COM POWERSHELL 7.3
-
-    f = open("baixar_com_powershell_" + orderID + ".txt", "a")
-    f.write("$baseUri = " + "\"https://www.ncei.noaa.gov/pub/has/model/" + orderID + "\"\n")
-    f.write("$files = @(" + "\n")
-    for ano in anos:
-        if (ano == str(ano_inicio)):
-            for mes in meses:
-                for dia in dias:
-                    if ((int(mes) == mes_inicio and int(dia) >= dia_inicio) or (int(mes) > mes_inicio)):
-                        f.write("    @{\n        Uri = \"$baseUri/gfsanl_4_" + ano + mes + dia + "00.g2.tar" + "\"\n")
-                        f.write(
-                            "        OutFile = \"" + dir_arq + "\\gfsanl_4_" + ano + mes + dia + "00.g2.tar" + "\"\n" + "    },\n")
-        elif (ano == str(ano_fim)):
-            for mes in meses:
-                for dia in dias:
-                    if ((int(mes) == mes_fim and int(dia) <= dia_fim) or (int(mes) < mes_fim)):
-                        f.write("    @{\n        Uri = \"$baseUri/gfsanl_4_" + ano + mes + dia + "00.g2.tar" + "\"\n")
-                        if (int(mes) == mes_fim and int(dia) == dia_fim):
-                            f.write(
-                                "        OutFile = \"" + dir_arq + "\\gfsanl_4_" + ano + mes + dia + "00.g2.tar" + "\"\n" + "    }\n")
-                        else:
-                            f.write(
-                                "        OutFile = \"" + dir_arq + "\\gfsanl_4_" + ano + mes + dia + "00.g2.tar" + "\"\n" + "    },\n")
-
-    f.write(""")
-
-    $jobs = @()
-
-    foreach ($file in $files) {
-        $jobs += Start-ThreadJob -Name $file.OutFile -ScriptBlock {
-            $params = $using:file
-            Invoke-WebRequest @params
-        }
-    }
-
-    Write-Host "Downloads started..."
-    Wait-Job -Job $jobs
-
-    foreach ($job in $jobs) {
-        Receive-Job -Job $job
-    }""")
-    f.close()
-
-def code_extract_files:
     # DEFINIR DIRETÓRIO DOS ARQUIVOS .g2.tar
     dir_arq = "DadosGFS"
+    os.makedirs(dir_arq, exist_ok=True)  # <- garante que a pasta existe
+
+    # DEFINIR DATAS
+    dia_inicio, mes_inicio, ano_inicio = 10, 4, 2014
+    dia_fim, mes_fim, ano_fim = 9, 4, ano_inicio + 1
+
+    dias = [f"{x:02d}" for x in range(1, 32)]
+    meses = [f"{x:02d}" for x in range(1, 13)]
+    anos = [str(x) for x in range(ano_inicio, ano_fim + 1)]
+
+    # Construir o script PowerShell como string
+    ps_script = f"$baseUri = 'https://www.ncei.noaa.gov/pub/has/model/{orderID}'\n$files = @(\n"
+
+    for ano in anos:
+        for mes in meses:
+            for dia in dias:
+                include = False
+                if int(ano) == ano_inicio and (
+                        int(mes) > mes_inicio or (int(mes) == mes_inicio and int(dia) >= dia_inicio)):
+                    include = True
+                elif int(ano) == ano_fim and (int(mes) < mes_fim or (int(mes) == mes_fim and int(dia) <= dia_fim)):
+                    include = True
+                elif int(ano) != ano_inicio and int(ano) != ano_fim:
+                    include = True
+
+                if include:
+                    out_file = f"{dir_arq}\\gfsanl_4_{ano}{mes}{dia}00.g2.tar"
+                    if (int(mes) == mes_fim and int(dia) == dia_fim):
+                        ps_script += f"    @{{ Uri = \"$baseUri/gfsanl_4_{ano}{mes}{dia}00.g2.tar\"; OutFile = \"{out_file}\" }}\n"
+                    else:
+                        ps_script += f"    @{{ Uri = \"$baseUri/gfsanl_4_{ano}{mes}{dia}00.g2.tar\"; OutFile = \"{out_file}\" }},\n"
+
+    ps_script += ")\n\n$jobs = @()\nforeach ($file in $files) {\n"
+    ps_script += "    $jobs += Start-ThreadJob -Name $file.OutFile -ScriptBlock { Invoke-WebRequest @using:file }\n}\n"
+    ps_script += "Write-Host 'Downloads started...'\nWait-Job -Job $jobs\nforeach ($job in $jobs) { Receive-Job -Job $job }\n"
+
+    ps_filename = "baixar_gfs.ps1"
+    with open(ps_filename, "w", encoding="utf-8") as f:
+        f.write(ps_script)
+
+    # Executar diretamente no PowerShell 7
+    pwsh_path = r"C:\Program Files\PowerShell\7\pwsh.exe"
+    subprocess.run([pwsh_path, "-File", ps_filename])
+
+    if os.path.exists(ps_filename):
+        os.remove(ps_filename) #
+
+def extract_files:
+    # DEFINIR DIRETÓRIO DOS ARQUIVOS .g2.tar
+    dir_arq = "DadosGFS"
+    os.makedirs(dir_arq, exist_ok=True)  # <- garante que a pasta existe
 
     # CRIA LISTA COM O NOME DOS ARQUIVOS
     arq_lista = []
