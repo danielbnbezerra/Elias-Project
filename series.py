@@ -1,5 +1,6 @@
 import cfgrib
 import os
+import tarfile
 import subprocess
 import datetime
 import pandas as pd
@@ -266,24 +267,35 @@ def download_GFS_data(orderID="HAS012640249"): #ID do request atual é o padrão
     if os.path.exists(ps_filename):
         os.remove(ps_filename) #
 
-def extract_files:
-    # DEFINIR DIRETÓRIO DOS ARQUIVOS .g2.tar
-    dir_arq = "DadosGFS"
-    os.makedirs(dir_arq, exist_ok=True)  # <- garante que a pasta existe
+def extract_from_raw_data(dir_arq="DadosGFS"):
 
-    # CRIA LISTA COM O NOME DOS ARQUIVOS
-    arq_lista = []
-    for arq in os.listdir(dir_arq):
-        if (arq.split('.')[-1] == 'tar'):
-            arq_lista.append(arq)
+    # Diretório onde estão os arquivos .g2.tar
 
-    # EXTRAI OS ARQUIVOS .grb2
+    # Lista arquivos .tar dentro da pasta
+    arq_lista = [arq for arq in os.listdir(dir_arq) if arq.endswith(".tar")]
+
+    # Extrai apenas o arquivo *_0000_003.grb2 de cada .tar
     for arq in arq_lista:
-        arq_split = arq.split('_')
-        nome = arq_split[0][:3] + "_" + arq_split[1] + "_" + arq_split[2][:-9] + "_0000_003.grb2"
-        os.system("7z e " + dir_arq + "\\" + arq + " -o" + dir_arq + " " + nome)
+        caminho = os.path.join(dir_arq, arq)
+        try:
+            with tarfile.open(caminho, "r") as tar:
+                # monta o nome esperado do arquivo
+                arq_split = arq.split('_')
+                nome = arq_split[0][:3] + "_" + arq_split[1] + "_" + arq_split[2][:-9] + "_0000_003.grb2"
 
-def code_grib2:
+                # procura dentro do tar
+                membro = next((m for m in tar.getmembers() if m.name.endswith(nome)), None)
+
+                if membro:
+                    print(f"Extraindo {membro.name} de {arq}...")
+                    tar.extract(membro, path=f"{dir_arq}\\extraidos\\")
+                else:
+                    print(f"[AVISO] Arquivo {nome} não encontrado dentro de {arq}")
+
+        except Exception as e:
+            print(f"[ERRO] Não foi possível abrir {arq}: {e}")
+
+def code_grib2():
     # DEFINIR DIRETÓRIO DOS ARQUIVOS .grb2
     dir_files = "DadosGFS//"
 
@@ -406,7 +418,7 @@ def code_grib2:
                 f.write(str(date) + ", " + str(data[v].mean()) + "\n")
                 f.close()
 
-def code_variable_list:
+def code_variable_list():
     # DEFINIR DIRETÓRIO DOS ARQUIVOS .grb2
     dir_files = "DadosGFS//"
 
@@ -438,7 +450,7 @@ def code_variable_list:
 
         f.close()
 
-def missing_dates_grb2:
+def missing_dates_grb2():
 
     # DEFINIR DIRETÓRIO DOS ARQUIVOS .g2.tar
     dir_arq = "F:\\DadosGFS.grb2"
@@ -470,7 +482,7 @@ def missing_dates_grb2:
         f.write(str(data_arq) + "\n")
     f.close()
 
-def missing_dates_tar:
+def missing_dates_tar():
     # DEFINIR DIRETÓRIO DOS ARQUIVOS .g2.tar
     dir_arq = "F:\\DadosGFS.tar"
 
@@ -501,7 +513,7 @@ def missing_dates_tar:
         f.write(str(data_arq) + "\n")
     f.close()
 
-def code_lstm:
+def code_lstm():
     from keras.models import Sequential
     from keras.layers import LSTM, Dense
 
