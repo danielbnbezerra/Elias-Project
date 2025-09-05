@@ -753,7 +753,7 @@ class DataWindow(ctk.CTkToplevel):
         self.focus_set()
         self.centralize_window()
 
-    def centralize_window(self, width=400,height=400):
+    def centralize_window(self, width=300,height=400):
         # window_width = round(self.winfo_width(),-1)
         # window_height = round(self.winfo_height(),-1)
         window_width = width
