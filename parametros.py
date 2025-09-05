@@ -1,6 +1,8 @@
 from models import *
-import tkinter as tk
 import customtkinter as ctk
+import tkinter as tk
+from tkinter import messagebox, filedialog
+from tkcalendar import DateEntry
 
 #JANELA PRINCIPAL COM CHECKBOX EM VEZ DE OPTION MENU, janelas de parâmetros abrem para cada checkbox marcada.
 
@@ -712,3 +714,89 @@ class NHiTSModelWindow(NModelWindow):
             "batch_size": int(self.option_batch_size.get()),
             "save_checkpoints": self.option_save_checkpoints.get().lower()
         }
+
+class DataWindow(ctk.CTkToplevel):
+    def __init__(self, master, callback=None):
+        super().__init__(master)
+        self.grid_propagate(True)
+        self.title("Dados - Parâmetros")
+        self.callback = callback  # função para retornar os valores
+        self.mask_file=None
+
+        #orderID
+        ctk.CTkLabel(self, text="orderID:").pack(pady=5)
+        self.entry_orderID = ctk.CTkEntry(self)
+        self.entry_orderID.pack(pady=5)
+
+        #Intervalos
+        ctk.CTkLabel(self, text="Data Inícial:").pack(pady=5)
+        self.entry_begin_date = DateEntry(self, date_pattern="dd/mm/yyyy")
+        self.entry_begin_date.pack(pady=5)
+
+        ctk.CTkLabel(self, text="Data Final:").pack(pady=5)
+        self.entry_end_date = DateEntry(self, date_pattern="dd/mm/yyyy")
+        self.entry_end_date.pack(pady=5)
+
+        #Arquivo da Máscara
+        ctk.CTkLabel(self, text="Arquivo Máscara (.txt):").pack(pady=5)
+        self.upload_button = ctk.CTkButton(self, text="Selecionar arquivo", command=self.upload_file)
+        self.upload_button.pack(pady=5)
+        self.file_label = ctk.CTkLabel(self, text="Nenhum arquivo selecionado")
+        self.file_label.pack(pady=5)
+
+        # Botão salvar
+        ctk.CTkButton(self, text="Salvar", command=self.save_parameters).pack(pady=15)
+
+        # Faz a janela modal (bloqueia interação com a principal)
+        self.transient(master)
+        self.grab_set()
+        self.focus_set()
+        self.centralize_window()
+
+    def centralize_window(self, width=400,height=400):
+        # window_width = round(self.winfo_width(),-1)
+        # window_height = round(self.winfo_height(),-1)
+        window_width = width
+        window_height = height
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        x = round((screen_width - window_width)//2,-1)
+        y = round((screen_height - window_height)//2,-1)
+        self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
+
+    def upload_file(self):
+        # Abre diálogo para selecionar arquivo .txt
+        self.mask_file = filedialog.askopenfilename(
+            title="Selecione a máscara:",
+            filetypes=[("TXT files", "*.txt")]
+        )
+        if self.mask_file:
+            self.file_label.configure(text=self.mask_file.split("/")[-1])  # mostra apenas o nome do arquivo
+
+    def save_parameters(self):
+        try:
+            orderID = str(self.entry_orderID.get())
+            if not self.mask_file:
+                messagebox.showerror("Erro - Ausência de Arquivo", "Por favor, selecione um arquivo .txt contendo a máscara.")
+                return
+
+            # Datas
+            date1 = self.entry_begin_date.get_date()
+            date2 = self.entry_end_date.get_date()
+            date_values = [date1.day, date1.month, date1.year, date2.day, date2.month, date2.year]
+
+            params = {
+                "orderID": orderID,
+                "Intervals": date_values,
+                "Mask": self.mask_file  # caminho do arquivo
+            }
+
+        except ValueError:
+            messagebox.showerror("Erro", "Preencha todos os campos corretamente!")
+            return
+
+        # Retorna os valores para a Application via callback
+        if self.callback:
+            self.callback(params)
+
+        self.destroy()  # fecha a janela

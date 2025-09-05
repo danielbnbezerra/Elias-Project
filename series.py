@@ -219,7 +219,7 @@ def monthlist_Fast(dates):
 def download_GFS_data(orderID="HAS012640249"): #ID do request atual é o padrão. Idealmente não existe padrão pois os request duram dias.
 
     # DEFINIR DIRETÓRIO DOS ARQUIVOS .g2.tar
-    dir_arq = "DadosGFS"
+    dir_arq = "DadosGFS\\raw"
     os.makedirs(dir_arq, exist_ok=True)  # <- garante que a pasta existe
 
     # DEFINIR DATAS

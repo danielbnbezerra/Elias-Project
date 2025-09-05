@@ -1,6 +1,5 @@
 from parametros import *
 import customtkinter as ctk
-from tkinter import filedialog, messagebox
 
 class Application(ctk.CTk):
     def __init__(self):
@@ -12,6 +11,10 @@ class Application(ctk.CTk):
         self.new_window = None
         self.model = None
         self.file = None
+        self.orderID = None #OrderID, Datas de começo e fim e máscara
+        self.data_intervals = None
+        self.mask_file = None
+
         self.possible_windows = [
             {"window": LHCModelWindow, "name":"LHC"},
             {"window": NBEATSModelWindow,"name":"N-BEATS"},
@@ -35,7 +38,7 @@ class Application(ctk.CTk):
         self.main_options_frame.rowconfigure(0, weight=1)  # Espaço antes dos botões
         self.main_options_frame.rowconfigure(1, weight=1)
 
-        predict_button = ctk.CTkButton(master= self.main_options_frame, text="Realizar Previsão", command=lambda: self.display_options("option_1"))
+        predict_button = ctk.CTkButton(master= self.main_options_frame, text="Configuração Dados", command=self.data_window)
         predict_button.grid(row=0, column=0, padx=15, pady=10)
 
         #Frame de Opção Selecionada
@@ -170,6 +173,18 @@ class Application(ctk.CTk):
         if selected_models:
             # Criação da janela de parâmetros para o primeiro modelo selecionado
             self.parameter_window(selected_models, 0)
+
+    def data_window(self):
+        def get_data_params(data_parameters):
+            self.orderID = data_parameters["orderID"]
+            self.data_intervals = data_parameters["Intervals"]
+            self.mask_file = data_parameters["Mask"]
+            messagebox.showinfo("Sucesso!", "Parâmetros Salvos")
+            print(self.orderID,self.data_intervals,self.mask_file)
+            self.display_options("option_1")
+
+        # Abre a janela de parâmetros, passando a função como callback
+        DataWindow(master=self, callback=get_data_params)
 
     def parameter_window(self, selected_models, index):
         if index > len(selected_models):
