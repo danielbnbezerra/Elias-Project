@@ -72,7 +72,8 @@ class Application(ctk.CTk):
             self.entry_start_date = DateEntry(
                 self.start_date_frame,
                 date_pattern="dd/mm/yyyy",
-                parent=self.start_date_frame
+                parent=self.start_date_frame,
+                takefocus = False
             )
             self.entry_start_date.grid(row=0, column=1, padx=5)
             Tooltip(self.label_start_date, text="Escolha a data inicial dos dados a serem utilizados.")
@@ -84,7 +85,8 @@ class Application(ctk.CTk):
             self.entry_end_date = DateEntry(
                 self.end_date_frame,
                 date_pattern="dd/mm/yyyy",
-                parent=self.end_date_frame
+                parent=self.end_date_frame,
+                takefocus = False
             )
             self.entry_end_date.grid(row=0, column=1, padx=5)
             Tooltip(self.label_end_date, text="Escolha a data final dos dados a serem utilizados.")
@@ -97,7 +99,7 @@ class Application(ctk.CTk):
             self.option_train_valid = ctk.CTkComboBox(master=self.train_valid_frame, values=self.train_valid)
             self.option_train_valid.set("Selecione/Digite")
             self.option_train_valid.grid(row=0, column=1, padx=5)
-            Tooltip(self.label_train_valid, text="Escolha a proporção de divisão dos dados entre treino e validação.")
+            Tooltip(self.label_train_valid, text="Escolha a proporção de divisão dos dados entre treino e validação, soma deve representar 100%. Ex: '80/20'.")
 
             self.model_frame = ctk.CTkFrame(self.main_selected_options_frame, fg_color="transparent")
             self.model_frame.pack(pady=5)
@@ -183,17 +185,36 @@ SOFTWARE.""")
         messagebox.showinfo(title, msg)
 
     def get_train_valid_values(self):
-        train,_ = self.option_train_valid.get().split("/")
-        train_percent = float(train)/100
-        return train_percent
+        try:
+            parts = self.option_train_valid.get().split("/")
+            if len(parts) != 2:
+                raise ValueError("Formato errado.")
+            train, valid = map(int, parts)
+
+            # Verifica se a soma é 100
+            if (train + valid) != 100:
+                messagebox.showerror(
+                    "Erro",
+                    f"A soma de treino e validação deve ser 100. Valor atual: {train}/{valid}."
+                )
+                return False
+            train_percent = float(train) / 100
+            return train_percent
+
+        except (ValueError, AttributeError):
+            messagebox.showerror("Erro",
+                                 f"Formato inválido: '{self.option_train_valid.get()}'. Preencha no formato 'treino/validação', soma deve representar 100%. Exemplo '80/20'.")
+            return False
 
     def check_dates(self):
-        self.timeseries = GetSeries(self.series_files, self.get_train_valid_values())
+        train_percent = self.get_train_valid_values()
+        if train_percent is False:
+            return False
+        self.timeseries = GetSeries(self.series_files, train_percent)
         try:
             # Pega as datas do DateEntry
             date_start = pd.to_datetime(self.entry_start_date.get(), dayfirst=True)
             date_end = pd.to_datetime(self.entry_end_date.get(), dayfirst=True)
-            # date_values = [date_start.day, date_start.month, date_start.year, date_end.day, date_end.month, date_end.year]
 
             # Checa se a data inicial é menor que a final
             if date_start > date_end:
@@ -211,12 +232,13 @@ SOFTWARE.""")
                                              f" não coincidem com as da série de vazão. ({date_min_flow.strftime('%d/%m/%Y')} - {date_max_flow.strftime('%d/%m/%Y')})")
                 return False
 
-            if not (date_min_prate <= date_start <= date_max_prate):
-                messagebox.showerror("Erro", f"A data inicial da série deve estar entre {date_min_prate.strftime('%d/%m/%Y')} e {date_max_prate.strftime('%d/%m/%Y')}.")
+            #Pelo menos 30 valores para as séries carregadas, correspondendo a 25 valores após criação de séries derivadas
+            if not (date_min_prate <= date_start <= (date_max_prate - pd.Timedelta(days=30))):
+                messagebox.showerror("Erro", f"A data inicial da série deve estar entre {date_min_prate.strftime('%d/%m/%Y')} e {(date_max_prate- pd.Timedelta(days=30)).strftime('%d/%m/%Y')}.")
                 return False
 
-            if not (date_min_prate <= date_end <= date_max_prate):
-                messagebox.showerror("Erro", f"A data final da série deve estar entre {date_min_prate.strftime('%d/%m/%Y')} e {date_max_prate.strftime('%d/%m/%Y')}.")
+            if not ((date_min_prate + pd.Timedelta(days=30)) <= date_end <= date_max_prate):
+                messagebox.showerror("Erro", f"A data final da série deve estar entre {(date_min_prate + pd.Timedelta(days=30)).strftime('%d/%m/%Y')} e {date_max_prate.strftime('%d/%m/%Y')}.")
                 return False
 
             return True
@@ -248,7 +270,7 @@ SOFTWARE.""")
             return
         model_name_window = selected_models[index]["window"]
         if self.new_window is None or not self.new_window.winfo_exists():
-           self.new_window = model_name_window(self.series, index+1, selected_models)
+           self.new_window = model_name_window(self.timeseries, index+1, selected_models)
         else:
            self.new_window.focus()
 
