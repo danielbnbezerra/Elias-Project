@@ -11,7 +11,7 @@ class Application(ctk.CTk):
         self.new_window = None
         self.model = None
         self.series_files = None
-        self.data_intervals = None
+        self.data_intervals = []
         self.timeseries=None
 
         self.possible_windows = [
@@ -221,6 +221,11 @@ SOFTWARE.""")
                 messagebox.showerror("Erro", "A data inicial não pode ser maior que a data final.")
                 return False
 
+            # Checa se a data inicial é igual a final
+            if date_start == date_end:
+                messagebox.showerror("Erro", "A data inicial não pode ser igual a data final.")
+                return False
+
             # Checa se as datas estão dentro da série temporal
             date_min_prate = self.timeseries.prate.start_time()
             date_max_prate = self.timeseries.prate.end_time()
@@ -241,6 +246,8 @@ SOFTWARE.""")
                 messagebox.showerror("Erro", f"A data final da série deve estar entre {(date_min_prate + pd.Timedelta(days=30)).strftime('%d/%m/%Y')} e {date_max_prate.strftime('%d/%m/%Y')}.")
                 return False
 
+            self.data_intervals.append(date_start)
+            self.data_intervals.append(date_end)
             return True
 
         except Exception as e:
@@ -251,6 +258,9 @@ SOFTWARE.""")
         # Pegando os modelos selecionados
         selected_models = [model for i, model in enumerate(self.possible_windows) if self.checkboxes[i]["var"].get()]
         if self.check_dates():
+            self.timeseries.update_date_interval(self.data_intervals[0],self.data_intervals[1])
+            for attr, value in self.timeseries.__dict__.items():
+                print(f"{attr}: {value}")
             if selected_models:
                 # Criação da janela de parâmetros para o primeiro modelo selecionado
                 self.parameter_window(selected_models, 0)
@@ -266,7 +276,8 @@ SOFTWARE.""")
 
     def parameter_window(self, selected_models, index):
         if index > len(selected_models):
-            print("Todos os modelos configurados!")
+            self.show_message("Modelos",
+                              "Modelos configurados com sucesso.\nComeçando treinamento.")
             return
         model_name_window = selected_models[index]["window"]
         if self.new_window is None or not self.new_window.winfo_exists():

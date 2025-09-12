@@ -13,12 +13,13 @@ from datetime import datetime, timedelta
 
 class GetSeries:
     def __init__(self, series_files, train_percent):
+        self.train_percent = train_percent
         self.prate=None
         self.prate_t_minus_3=None
         self.prate_t_minus_5=None
         self.flow=None
         self.make_timeseries(series_files)
-        self.train_cov, self.valid_cov, self.train_target, self.val_target= self.train_valid_split(train_percent)
+        self.train_cov, self.valid_cov, self.train_target, self.val_target= self.train_valid_split(self.train_percent)
 
     def make_timeseries(self, series_file):
         max_window = 5  # maior janela
@@ -56,6 +57,28 @@ class GetSeries:
         train_cov, valid_cov = self.prate_covariates.split_before(int(self.prate_covariates.n_timesteps * train_percent))
         train_target, val_target = self.flow.split_before(int(self.flow.n_timesteps * train_percent)) #Por padrão separando em 80% treino e 20% validação
         return train_cov, valid_cov, train_target, val_target
+
+    def update_date_interval(self, date_start, date_end):
+
+        # Converte para Timestamp se necessário
+        if not isinstance(date_start, pd.Timestamp):
+            date_start = pd.to_datetime(date_start)
+        if not isinstance(date_end, pd.Timestamp):
+            date_end = pd.to_datetime(date_end)
+
+        #Recorte das séries
+        self.prate = self.prate.slice(date_start, date_end)
+        self.prate_t_minus_3 = self.prate_t_minus_3.slice(date_start, date_end)
+        self.prate_t_minus_5 = self.prate_t_minus_5.slice(date_start, date_end)
+        self.flow = self.flow.slice(date_start, date_end)
+
+        # Atualiza covariates
+        self.prate_covariates = self.prate.stack(self.prate_t_minus_5).stack(self.prate_t_minus_3)
+
+        # Atualiza treino e validação, se já tiver sido definido
+        if hasattr(self, "train_cov") and hasattr(self, "train_target"):
+            self.train_cov, self.valid_cov, self.train_target, self.val_target = self.train_valid_split(self.train_percent)
+
 
 class MetricModels:
     def __init__(self, series, predictions):
