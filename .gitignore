@@ -1,0 +1,13 @@
+# Pastas de séries e dados
+SeriesReais/
+Old/
+DadosGFS/
+
+# Logs do Darts
+darts_logs/
+
+# Ambiente virtual
+.venv/
+
+# Pastas de teste
+Testes/
