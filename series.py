@@ -12,18 +12,50 @@ from datetime import datetime, timedelta
 #from darts.utils.statistics import check_seasonality, plot_acf
 
 class GetSeries:
-    def __init__(self, series_file):
-        self.timeseries = self.make_timeseries(series_file)
-        self.train, self.valid = self.train_valid_split()
+    def __init__(self, series_files, train_percent):
+        self.prate=None
+        self.prate_t_minus_3=None
+        self.prate_t_minus_5=None
+        self.flow=None
+        self.make_timeseries(series_files)
+        self.train_cov, self.valid_cov, self.train_target, self.val_target= self.train_valid_split(train_percent)
 
     def make_timeseries(self, series_file):
-        df = pd.read_csv(series_file)
-        timeseries = TimeSeries.from_dataframe(df, 'Month', '#Passengers')
-        return timeseries
+        max_window = 5  # maior janela
 
-    def train_valid_split(self):
-        train, valid = self.timeseries.split_before(int(self.timeseries.n_timesteps * 0.80)) #Por padrão separando em 80% treino e 20% validação
-        return train, valid
+        df_prate = pd.read_csv(series_file["prate"], header=None, names=["date", "prate"])
+        df_prate["date"] = pd.to_datetime(df_prate["date"])
+
+        df_flow = pd.read_csv(series_file["flow"], header=None, names=["date", "flow"])
+        df_flow["date"] = pd.to_datetime(df_flow["date"])
+
+        #Criar séries cumulativas
+        df_prate_t_minus_3 = self.make_cumulative_series(df_prate, 3)
+        df_prate_t_minus_5 = self.make_cumulative_series(df_prate, 5)
+
+        #Cortar os primeiros 5 valores para todas as séries (tamanho da janela máxima)
+        df_prate = df_prate.iloc[max_window - 1:]
+        df_prate_t_minus_3 = df_prate_t_minus_3.iloc[max_window - 1:]
+        df_prate_t_minus_5 = df_prate_t_minus_5.iloc[max_window - 1:]
+        df_flow = df_flow.iloc[max_window - 1:]
+
+        self.prate = TimeSeries.from_dataframe(df_prate, 'date', 'prate')
+        self.prate_t_minus_3 = TimeSeries.from_dataframe(df_prate_t_minus_3, 'date', 'prate_t_minus_3')
+        self.prate_t_minus_5 = TimeSeries.from_dataframe(df_prate_t_minus_5, 'date', 'prate_t_minus_5')
+        self.prate_covariates = self.prate.stack(self.prate_t_minus_5).stack(self.prate_t_minus_3)
+        self.flow = TimeSeries.from_dataframe(df_flow, 'date', 'flow')
+
+    def make_cumulative_series(self, df, days):
+        return pd.DataFrame({
+            "date": df["date"],
+            f"prate_t_minus_{days}": df["prate"].rolling(window=days, min_periods=1).sum()
+        })
+
+    def train_valid_split(self, train_percent):
+
+        train_cov, valid_cov = self.prate_covariates.split_before(int(self.prate_covariates.n_timesteps * train_percent))
+        train_target, val_target = self.flow.split_before(int(self.flow.n_timesteps * train_percent)) #Por padrão separando em 80% treino e 20% validação
+        return train_cov, valid_cov, train_target, val_target
 
 class MetricModels:
     def __init__(self, series, predictions):
@@ -397,7 +429,7 @@ def code_grib2():
         # USA A MÁSCARA
         num = 3
 
-        area = pd.read_csv("rastert_areas-i3.txt", delim_whitespace=True, skiprows=6, \
+        area = pd.read_csv("Old/rastert_areas-i3.txt", delim_whitespace=True, skiprows=6, \
                            names=list(range(20)))
 
         area_filter = data["time"].rename("filter")

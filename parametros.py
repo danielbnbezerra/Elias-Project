@@ -66,35 +66,34 @@ class ConfirmExitWindow(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Sair do Aplicativo?")
-        self.geometry("300x150")
         self.centralize_window()
         self.grab_set()  # Make this window modal (prevents interaction with the main window)
 
         label = ctk.CTkLabel(self, text="Tem certeza que deseja sair?")
         label.pack(pady=20)
 
-        button_frame = ctk.CTkFrame(self)
+        button_frame = ctk.CTkFrame(self, fg_color="transparent")
         button_frame.pack(pady=10)
 
         yes_button = ctk.CTkButton(button_frame, text="Sim", command=parent.quit)
-        yes_button.pack(side="left", padx=10)
+        yes_button.grid(row=0, column=0, padx=10)
+        # yes_button.pack(side="left", padx=10)
 
         no_button = ctk.CTkButton(button_frame, text="Não", command=self.destroy)
-        no_button.pack(side="right", padx=10)
+        no_button.grid(row=0, column=1, padx=10)
+        # no_button.pack(side="right", padx=10)
 
-    def centralize_window(self):
-        # window_width = round(self.winfo_width(),-1)
-        # window_height = round(self.winfo_height(),-1)
-        window_width = 300
-        window_height = 150
+    def centralize_window(self, width=320, height=150):
+        window_width = width
+        window_height = height
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
-        x = round((screen_width - window_width)//2,-1)
-        y = round((screen_height - window_height)//2,-1)
+        x = round((screen_width - window_width) // 2, -1)
+        y = round((screen_height - window_height) // 2, -1)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
 class BasicWindow(ctk.CTkToplevel):
-    def __init__(self, file, index, remaining_models, configs=[], *args, **kwargs):
+    def __init__(self, series, index, remaining_models, configs=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         if configs is None:
             configs = []
@@ -103,8 +102,9 @@ class BasicWindow(ctk.CTkToplevel):
         self.index = index
         self.selected_models = remaining_models
         self.model = None
-        self.file = file
+        self.series = series
         self.parameters = None
+
         self.option_frame = ctk.CTkFrame(self, fg_color="#DDDDDD")
         self.option_frame.place(x=0, y=0, relwidth=0.2, relheight=1)
         self.option_frame.columnconfigure(0, weight=1)
@@ -719,33 +719,32 @@ class DataWindow(ctk.CTkToplevel):
     def __init__(self, master, callback=None):
         super().__init__(master)
         self.grid_propagate(True)
-        self.title("Dados - Parâmetros")
+        self.title("Dados - Upload")
         self.callback = callback  # função para retornar os valores
-        self.mask_file=None
+        self.prate_file=None
+        self.flow_file=None
 
-        #orderID
-        ctk.CTkLabel(self, text="orderID:").pack(pady=5)
-        self.entry_orderID = ctk.CTkEntry(self)
-        self.entry_orderID.pack(pady=5)
-
-        #Intervalos
-        ctk.CTkLabel(self, text="Data Inícial:").pack(pady=5)
-        self.entry_begin_date = DateEntry(self, date_pattern="dd/mm/yyyy")
-        self.entry_begin_date.pack(pady=5)
-
-        ctk.CTkLabel(self, text="Data Final:").pack(pady=5)
-        self.entry_end_date = DateEntry(self, date_pattern="dd/mm/yyyy")
-        self.entry_end_date.pack(pady=5)
 
         #Arquivo da Máscara
-        ctk.CTkLabel(self, text="Arquivo Máscara (.txt):").pack(pady=5)
-        self.upload_button = ctk.CTkButton(self, text="Selecionar arquivo", command=self.upload_file)
-        self.upload_button.pack(pady=5)
-        self.file_label = ctk.CTkLabel(self, text="Nenhum arquivo selecionado")
-        self.file_label.pack(pady=5)
+        self.upload_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.upload_frame.pack(pady=(30,10))
+
+        self.upload_prate_button = ctk.CTkButton(self.upload_frame, text="Série Precipitação", command=self.upload_prate)
+        self.upload_prate_button.grid(row=0, column=0, padx=5)
+        self.label_prate_file = ctk.CTkLabel(self.upload_frame, text="Nenhum arquivo selecionado")
+        self.label_prate_file.grid(row=1, column=0, padx=5, pady=(0,10))
+        Tooltip(self.upload_prate_button, text="Upload da série de precipitação da bacia a ser estudada. (Formato CSV)")
+
+        self.upload_flow_button = ctk.CTkButton(self.upload_frame, text="Série Vazão", command=self.upload_flow)
+        self.upload_flow_button.grid(row=3, column=0, padx=5, pady=(10,0))
+        self.label_flow_file = ctk.CTkLabel(self.upload_frame, text="Nenhum arquivo selecionado")
+        self.label_flow_file.grid(row=4, column=0, padx=5)
+        Tooltip(self.upload_flow_button, text="Upload da série de vazão da bacia a ser estudada. (Formato CSV)")
+
 
         # Botão salvar
-        ctk.CTkButton(self, text="Salvar", command=self.save_parameters).pack(pady=15)
+        self.save_button = ctk.CTkButton(self, text="Salvar", command=self.save_parameters)
+        self.save_button.pack(pady=10)
 
         # Faz a janela modal (bloqueia interação com a principal)
         self.transient(master)
@@ -753,7 +752,7 @@ class DataWindow(ctk.CTkToplevel):
         self.focus_set()
         self.centralize_window()
 
-    def centralize_window(self, width=300,height=400):
+    def centralize_window(self, width=300,height=260):
         # window_width = round(self.winfo_width(),-1)
         # window_height = round(self.winfo_height(),-1)
         window_width = width
@@ -764,35 +763,40 @@ class DataWindow(ctk.CTkToplevel):
         y = round((screen_height - window_height)//2,-1)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
-    def upload_file(self):
+    def upload_prate(self):
         # Abre diálogo para selecionar arquivo .txt
-        self.mask_file = filedialog.askopenfilename(
-            title="Selecione a máscara:",
-            filetypes=[("TXT files", "*.txt")]
+        self.prate_file = filedialog.askopenfilename(
+            title="Selecione arquivo de precipitação:",
+            filetypes=[("CSV files", "*.csv")]
         )
-        if self.mask_file:
-            self.file_label.configure(text=self.mask_file.split("/")[-1])  # mostra apenas o nome do arquivo
+        if self.prate_file:
+            self.label_prate_file.configure(text=self.prate_file.split("/")[-1])  # mostra apenas o nome do arquivo
+
+    def upload_flow(self):
+        # Abre diálogo para selecionar arquivo .txt
+        self.flow_file = filedialog.askopenfilename(
+            title="Selecione arquivo de vazão:",
+            filetypes=[("CSV files", "*.csv")]
+        )
+        if self.flow_file:
+            self.label_flow_file.configure(text=self.flow_file.split("/")[-1])  # mostra apenas o nome do arquivo
 
     def save_parameters(self):
         try:
-            orderID = str(self.entry_orderID.get())
-            if not self.mask_file:
-                messagebox.showerror("Erro - Ausência de Arquivo", "Por favor, selecione um arquivo .txt contendo a máscara.")
+            if not self.prate_file:
+                messagebox.showerror("Erro - Ausência de Precipitação", "Por favor, selecione um arquivo .csv contendo a precipitação.")
+                return
+            if not self.flow_file:
+                messagebox.showerror("Erro - Ausência de Vazão", "Por favor, selecione um arquivo .csv contendo a vazão.")
                 return
 
-            # Datas
-            date1 = self.entry_begin_date.get_date()
-            date2 = self.entry_end_date.get_date()
-            date_values = [date1.day, date1.month, date1.year, date2.day, date2.month, date2.year]
-
             params = {
-                "orderID": orderID,
-                "Intervals": date_values,
-                "Mask": self.mask_file  # caminho do arquivo
+                "prate": self.prate_file,
+                "flow": self.flow_file
             }
 
         except ValueError:
-            messagebox.showerror("Erro", "Preencha todos os campos corretamente!")
+            messagebox.showerror("Erro", "Envie os arquivos necessários!")
             return
 
         # Retorna os valores para a Application via callback

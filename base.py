@@ -10,10 +10,9 @@ class Application(ctk.CTk):
         self.create_submenu()
         self.new_window = None
         self.model = None
-        self.file = None
-        self.orderID = None #OrderID, Datas de começo e fim e máscara
+        self.series_files = None
         self.data_intervals = None
-        self.mask_file = None
+        self.timeseries=None
 
         self.possible_windows = [
             {"window": LHCModelWindow, "name":"LHC"},
@@ -38,8 +37,9 @@ class Application(ctk.CTk):
         self.main_options_frame.rowconfigure(0, weight=1)  # Espaço antes dos botões
         self.main_options_frame.rowconfigure(1, weight=1)
 
-        predict_button = ctk.CTkButton(master= self.main_options_frame, text="Configuração Dados", command=self.data_window)
-        predict_button.grid(row=0, column=0, padx=15, pady=10)
+        self.data_button = ctk.CTkButton(master= self.main_options_frame, text="Upload Dados", command=self.data_window)
+        self.data_button.grid(row=0, column=0, padx=15, pady=10)
+        Tooltip(self.data_button, text="Selecione as séries temporais da respectiva bacia hidrográfica.")
 
         #Frame de Opção Selecionada
         self.main_selected_options_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
@@ -48,10 +48,7 @@ class Application(ctk.CTk):
         self.main_selected_options_frame.rowconfigure(0, weight=1)  # Espaço antes dos botões
         self.main_selected_options_frame.rowconfigure(5, weight=1)  # Espaço depois dos botões
 
-        self.upload_button = None
-        #Opção 1 - Realizar Previsão
-        # self.models = None
-        # self.model_option = None
+
         self.choose_model_button = None
 
         #Título Principal
@@ -66,33 +63,59 @@ class Application(ctk.CTk):
 
         if option == "option_1":
             #Seleção do Modelo
+
+            # Intervalos
+            self.start_date_frame = ctk.CTkFrame(self.main_selected_options_frame, fg_color="transparent")
+            self.start_date_frame.pack(pady=5)
+            self.label_start_date = ctk.CTkLabel(self.start_date_frame, text="Data Inicial:", font=("Arial", 14))
+            self.label_start_date.grid(row=0, column=0, padx=5)
+            self.entry_start_date = DateEntry(
+                self.start_date_frame,
+                date_pattern="dd/mm/yyyy",
+                parent=self.start_date_frame
+            )
+            self.entry_start_date.grid(row=0, column=1, padx=5)
+            Tooltip(self.label_start_date, text="Escolha a data inicial dos dados a serem utilizados.")
+
+            self.end_date_frame = ctk.CTkFrame(self.main_selected_options_frame, fg_color="transparent")
+            self.end_date_frame.pack(pady=5)
+            self.label_end_date = ctk.CTkLabel(self.end_date_frame, text="Data Final:", font=("Arial", 14))
+            self.label_end_date.grid(row=0, column=0, padx=5)
+            self.entry_end_date = DateEntry(
+                self.end_date_frame,
+                date_pattern="dd/mm/yyyy",
+                parent=self.end_date_frame
+            )
+            self.entry_end_date.grid(row=0, column=1, padx=5)
+            Tooltip(self.label_end_date, text="Escolha a data final dos dados a serem utilizados.")
+
+            self.train_valid_frame = ctk.CTkFrame(self.main_selected_options_frame, fg_color="transparent")
+            self.train_valid_frame.pack(pady=5)
+            self.label_train_valid = ctk.CTkLabel(master=self.train_valid_frame, text="Treino/Validação:", font=("Arial", 14))
+            self.label_train_valid.grid(row=0, column=0, padx=5)
+            self.train_valid = ['60/40', '65/35', '70/30', '80/20','85/15']
+            self.option_train_valid = ctk.CTkComboBox(master=self.train_valid_frame, values=self.train_valid)
+            self.option_train_valid.set("Selecione/Digite")
+            self.option_train_valid.grid(row=0, column=1, padx=5)
+            Tooltip(self.label_train_valid, text="Escolha a proporção de divisão dos dados entre treino e validação.")
+
+            self.model_frame = ctk.CTkFrame(self.main_selected_options_frame, fg_color="transparent")
+            self.model_frame.pack(pady=5)
+            self.label_models = ctk.CTkLabel(self.model_frame, text="Modelos:", font=("Arial", 14))
+            self.label_models.grid(row=0,column=0,pady=5)
+            self.model_select_frame = ctk.CTkFrame(self.model_frame, fg_color="transparent")
+            self.model_select_frame.grid(row=1, column=1, pady=5)
             for i, model in enumerate(self.possible_windows):
                 var = ctk.BooleanVar()
-                checkbox = ctk.CTkCheckBox(self.main_selected_options_frame, text=model["name"], variable=var)
+                checkbox = ctk.CTkCheckBox(self.model_select_frame, text=model["name"], variable=var)
                 checkbox.grid(row=i+1, column=0, pady=5)
                 self.checkboxes.append({"checkbox": checkbox, "var": var})
+            Tooltip(self.label_models, text="Escolha o modelo para realização do prognóstico.")
 
             #Confirmação
             self.choose_model_button = ctk.CTkButton(master=self.main_selected_options_frame, text="Confirmar", command=self.show_parameters)
-            self.choose_model_button.grid(row=4, column=0, pady=10)
-
-            #Upload
-            self.upload_button = ctk.CTkButton(master=self.main_selected_options_frame, text="Upload", command=self.upload_file)
-            Tooltip(self.upload_button, text="Upload do arquivo contendo os dados de entrada do modelo.")
-            self.upload_button.grid(row=5, column=0, pady=30)
-
-    def confirm_exit(self):
-        ConfirmExitWindow(self)
-
-    # Função para abrir o diálogo de upload e limitar formatos específicos
-    def upload_file(self):
-        # Filtrar formatos permitidos
-        self.file = filedialog.askopenfilename(
-            title="Selecione um arquivo",
-            filetypes=[
-                ("Dados", "*.csv *.xslx *.NetCDF"),  # permite apenas imagens
-            ]
-        )
+            self.choose_model_button.pack(pady=5)
+            Tooltip(self.choose_model_button, text="Confirma as escolhas e segue para escolha de parâmetros dos modelos selecionados.")
 
     # Criar Submenu
     def create_submenu(self):
@@ -103,25 +126,14 @@ class Application(ctk.CTk):
         #File menu
         file_menu = tk.Menu(main_menu, tearoff=0)
         main_menu.add_cascade(label="Arquivo", menu=file_menu)
-        file_menu.add_command(label="Upload Série", command=self.upload_file)
-        # file_menu.add_command(label="Open", command=self.open_file)
-        # file_menu.add_command(label="Save", command=self.save_file)
+        file_menu.add_command(label="Upload", command=self.data_window)
         file_menu.add_separator()
         file_menu.add_command(label="Sair", command=self.confirm_exit)
-
-        # Edit menu
-        # edit_menu = tk.Menu(main_menu, tearoff=0)
-        # main_menu.add_cascade(label="Edit", menu=edit_menu)
-        # edit_menu.add_command(label="Cut", command=self.cut)
-        # edit_menu.add_command(label="Copy", command=self.copy)
-        # edit_menu.add_command(label="Paste", command=self.paste)
 
         # View menu
         view_menu = tk.Menu(main_menu, tearoff=0)
         main_menu.add_cascade(label="Visualizar", menu=view_menu)
         view_menu.add_checkbutton(label="Tela Cheia", command=self.toggle_full_screen)
-        # view_menu.add_command(label="Zoom In", command=self.zoom_in)
-        # view_menu.add_command(label="Zoom Out", command=self.zoom_out)
 
         # Help menu
         help_menu = tk.Menu(main_menu, tearoff=0)
@@ -129,24 +141,8 @@ class Application(ctk.CTk):
         help_menu.add_command(label="Sobre", command=self.about)
 
     # File menu commands
-    def open_file(self):
-        self.show_message("Open File")
-
-    def save_file(self):
-        self.show_message("Save File")
-
-    def exit_app(self):
-        self.quit()
-
-    # Edit menu commands
-    def cut(self):
-        self.show_message("Cut")
-
-    def copy(self):
-        self.show_message("Copy")
-
-    def paste(self):
-        self.show_message("Paste")
+    def confirm_exit(self):
+        ConfirmExitWindow(self)
 
     # View menu commands
     def toggle_full_screen(self):
@@ -160,27 +156,87 @@ class Application(ctk.CTk):
 
     # Help menu commands
     def about(self):
-        self.show_message("About","This is an example application with a menu!")
+        self.show_message("About","""MIT License
+
+Copyright (c) 2025 Daniel Bezerra
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.""")
 
     # Utility function
-    def show_message(self, title,msg):
+    def show_message(self, title, msg):
         messagebox.showinfo(title, msg)
+
+    def get_train_valid_values(self):
+        train,_ = self.option_train_valid.get().split("/")
+        train_percent = float(train)/100
+        return train_percent
+
+    def check_dates(self):
+        self.timeseries = GetSeries(self.series_files, self.get_train_valid_values())
+        try:
+            # Pega as datas do DateEntry
+            date_start = pd.to_datetime(self.entry_start_date.get(), dayfirst=True)
+            date_end = pd.to_datetime(self.entry_end_date.get(), dayfirst=True)
+            # date_values = [date_start.day, date_start.month, date_start.year, date_end.day, date_end.month, date_end.year]
+
+            # Checa se a data inicial é menor que a final
+            if date_start > date_end:
+                messagebox.showerror("Erro", "A data inicial não pode ser maior que a data final.")
+                return False
+
+            # Checa se as datas estão dentro da série temporal
+            date_min_prate = self.timeseries.prate.start_time()
+            date_max_prate = self.timeseries.prate.end_time()
+            date_min_flow = self.timeseries.flow.start_time()
+            date_max_flow = self.timeseries.flow.end_time()
+
+            if not ((date_min_prate == date_min_flow) and (date_max_prate == date_max_flow)):
+                messagebox.showerror("Erro", f"As datas iniciais e finais ({date_min_prate.strftime('%d/%m/%Y')} - {date_max_prate.strftime('%d/%m/%Y')}) da série de precipitação"
+                                             f" não coincidem com as da série de vazão. ({date_min_flow.strftime('%d/%m/%Y')} - {date_max_flow.strftime('%d/%m/%Y')})")
+                return False
+
+            if not (date_min_prate <= date_start <= date_max_prate):
+                messagebox.showerror("Erro", f"A data inicial da série deve estar entre {date_min_prate.strftime('%d/%m/%Y')} e {date_max_prate.strftime('%d/%m/%Y')}.")
+                return False
+
+            if not (date_min_prate <= date_end <= date_max_prate):
+                messagebox.showerror("Erro", f"A data final da série deve estar entre {date_min_prate.strftime('%d/%m/%Y')} e {date_max_prate.strftime('%d/%m/%Y')}.")
+                return False
+
+            return True
+
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao validar datas: {e}")
+            return False
 
     def show_parameters(self):
         # Pegando os modelos selecionados
         selected_models = [model for i, model in enumerate(self.possible_windows) if self.checkboxes[i]["var"].get()]
-
-        if selected_models:
-            # Criação da janela de parâmetros para o primeiro modelo selecionado
-            self.parameter_window(selected_models, 0)
+        if self.check_dates():
+            if selected_models:
+                # Criação da janela de parâmetros para o primeiro modelo selecionado
+                self.parameter_window(selected_models, 0)
 
     def data_window(self):
         def get_data_params(data_parameters):
-            self.orderID = data_parameters["orderID"]
-            self.data_intervals = data_parameters["Intervals"]
-            self.mask_file = data_parameters["Mask"]
-            messagebox.showinfo("Sucesso!", "Parâmetros Salvos")
-            print(self.orderID,self.data_intervals,self.mask_file)
+            self.series_files = data_parameters
+            messagebox.showinfo("Sucesso!", "Arquivos Carregados.")
             self.display_options("option_1")
 
         # Abre a janela de parâmetros, passando a função como callback
@@ -191,18 +247,14 @@ class Application(ctk.CTk):
             print("Todos os modelos configurados!")
             return
         model_name_window = selected_models[index]["window"]
-        if self.file:
-            messagebox.showinfo("Arquivo Selecionado", f"Você selecionou o arquivo: {self.file}")
-            if self.new_window is None or not self.new_window.winfo_exists():
-                self.new_window = model_name_window(self.file, index+1, selected_models)
-            else:
-                self.new_window.focus()
+        if self.new_window is None or not self.new_window.winfo_exists():
+           self.new_window = model_name_window(self.series, index+1, selected_models)
         else:
-            messagebox.showwarning("Nenhum arquivo selecionado", "Por favor, selecione um arquivo válido.")
+           self.new_window.focus()
 
-    def centralize_window(self):
-        window_width = 400
-        window_height = 300
+    def centralize_window(self, width=480, height=380):
+        window_width = width
+        window_height = height
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         x = round((screen_width - window_width) // 2, -1)
