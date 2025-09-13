@@ -259,8 +259,6 @@ SOFTWARE.""")
         selected_models = [model for i, model in enumerate(self.possible_windows) if self.checkboxes[i]["var"].get()]
         if self.check_dates():
             self.timeseries.update_date_interval(self.data_intervals[0],self.data_intervals[1])
-            for attr, value in self.timeseries.__dict__.items():
-                print(f"{attr}: {value}")
             if selected_models:
                 # Criação da janela de parâmetros para o primeiro modelo selecionado
                 self.parameter_window(selected_models, 0)

@@ -20,28 +20,18 @@ class LossTracker(Callback):
             self.losses.append(loss.item())
 
 class ModelRunWindow(ctk.CTkToplevel):
-    def __init__(self, params, configs, series_file=None, series=None, predictions=None, losses=None):
+    def __init__(self, params, configs, series=None, predictions=None, losses=None):
         super().__init__()
         self.grab_set()
         self.grid_propagate(True)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)  # Espaço antes dos botões
         self.rowconfigure(1, weight=1)
-        self.file = series_file
-        if series_file:
-            self.series = GetSeries(series_file)
-        else:
-            self.series = series
+        self.series = series
         self.params = params
         self.configurations = configs
-        if predictions:
-            self.predictions = predictions
-        else:
-            self.predictions={}
-        if losses:
-            self.losses = losses
-        else:
-            self.losses={}
+        self.predictions = predictions if predictions is not None else {}
+        self.losses = losses if losses is not None else {}
         self.model = None
         self.epochs = None
 
@@ -70,8 +60,6 @@ class ModelRunWindow(ctk.CTkToplevel):
             self.after(100, self.destroy)
 
     def centralize_window(self):
-        # window_width = round(self.winfo_width(),-1)
-        # window_height = round(self.winfo_height(),-1)
         window_width = 400
         window_height = 200
         screen_width = self.winfo_screenwidth()
@@ -84,8 +72,8 @@ class ModelRunWindow(ctk.CTkToplevel):
         self.attributes("-topmost", True)
 
 class ModelRunLHCWindow(ModelRunWindow):
-    def __init__(self,params, configs, series_file=None, series=None, preds=None, losses=None):
-        super().__init__(params, configs, series_file, series, preds, losses)
+    def __init__(self,params, configs, series=None, preds=None, losses=None):
+        super().__init__(params, configs, series, preds, losses)
         self.title("LHC - Executando Modelo")
         self.centralize_window()
         self.bring_fwd_window()
@@ -132,8 +120,8 @@ class ModelRunLHCWindow(ModelRunWindow):
     #     self.next_model_run()
 
 class ModelRunNBEATSWindow(ModelRunWindow):
-    def __init__(self, params, configs, series_file=None, series=None, preds=None, losses=None):
-        super().__init__(params, configs, series_file, series, preds, losses)
+    def __init__(self, params, configs, series=None, preds=None, losses=None):
+        super().__init__(params, configs, series, preds, losses)
         self.title("N-BEATS - Executando Modelo")
         self.centralize_window()
         self.bring_fwd_window()
@@ -149,23 +137,27 @@ class ModelRunNBEATSWindow(ModelRunWindow):
         self.model = NBEATSModel(**self.params)
 
     def model_train(self):
-        print(self.series.train,self.series.valid)
+        for attr, value in self.series.__dict__.items():
+            print(f"{attr}: {value}")
         for epoch in range(self.epochs):
-            self.model.fit(series=self.series.train, val_series=self.series.valid)
+            self.model.fit(series=self.series.train_target,
+                           past_covariates=self.series.train_cov,
+                           val_past_covariates=self.series.valid_cov,
+                           val_series=self.series.valid_target)
             self.update_progress(epoch)
         if self.params['save_checkpoints'] == 'true':
             self.model = NBEATSModel.load_from_checkpoint(self.model.model_name)
         self.predict_model()
 
     def predict_model(self):
-        prediction = self.model.predict(series=self.series.train, n=len(self.series.valid))
+        prediction = self.model.predict(series=self.series.train_target, past_covariates=self.series.prate_covariates, n=len(self.series.valid_target))
         self.predictions["NBEATS"] = prediction
         self.losses["NBEATS"] = self.loss_tracker.losses
         self.next_model_run()
 
 class ModelRunNHiTSWindow(ModelRunWindow):
-    def __init__(self, params, configs, series_file=None, series=None, preds=None, losses=None):
-        super().__init__(params, configs, series_file, series, preds, losses)
+    def __init__(self, params, configs, series=None, preds=None, losses=None):
+        super().__init__(params, configs, series, preds, losses)
         self.title("N-HiTS - Executando Modelo")
         self.centralize_window()
         self.bring_fwd_window()
@@ -181,17 +173,19 @@ class ModelRunNHiTSWindow(ModelRunWindow):
         self.model = NHiTSModel(**self.params)
 
     def model_train(self):
-        print(self.series.train,self.series.valid)
+
         for epoch in range(self.epochs):
-            self.model.fit(series=self.series.train, val_series=self.series.valid)
+            self.model.fit(series=self.series.train_target,
+                           past_covariates=self.series.train_cov,
+                           val_past_covariates=self.series.valid_cov,
+                           val_series=self.series.valid_target)
             self.update_progress(epoch)
         if self.params['save_checkpoints'] == 'true':
             self.model = NHiTSModel.load_from_checkpoint(self.model.model_name)
         self.predict_model()
 
     def predict_model(self):
-        prediction = self.model.predict(series=self.series.train, n=len(self.series.valid))
+        prediction = self.model.predict(series=self.series.train_target, past_covariates=self.series.prate_covariates, n=len(self.series.valid_target))
         self.predictions["NHiTS"] = prediction
         self.losses["NHiTS"] = self.loss_tracker.losses
-        print(self.losses["NHiTS"])
         self.next_model_run()

@@ -5,46 +5,40 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from torch import save as torch_save
+from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_pdf import PdfPages
 from darts import TimeSeries
 from series import MetricModels
+import math
 
-#FALTA INTEGRAR EXEMPLO 20 AQUI
 
 class PlotWindow(ctk.CTkToplevel):
-    def __init__(self, series, preds, losses):
-        super(PlotWindow, self).__init__()
-        self.grab_set()
-        self.grid_propagate(True)
-        self.create_submenu()
-        self.timeseries = series.timeseries
-        self.predictions = preds
-        self.loss_curves = losses
-        self.metrics = MetricModels(series.valid, preds)
+    def __init__(self, series, predictions, residuals):
+        super().__init__()
         self.title("Visualização de Resultados")
+        self.series = series
+        self.predictions = predictions
+        self.residuals = residuals
 
-        # Layout com 2 colunas
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        # Menu lateral
+        self.menu_frame = ctk.CTkFrame(self, width=200)
+        self.menu_frame.pack(side="left", fill="y", padx=5, pady=5)
 
-        # Submenu de seleção
-        self.plot_menu_frame = ctk.CTkFrame(self)
-        self.plot_menu_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ns")
+        btn_new_graph = ctk.CTkButton(self.menu_frame, text="Novo Gráfico", command=self.open_new_graph_modal)
+        btn_new_graph.pack(pady=(20, 10), padx=20)
 
-        self.check_vars = {}
-        self.make_checkboxes()
-        self.selections = None
+        btn_delete_graph = ctk.CTkButton(self.menu_frame, text="Excluir Gráficos",
+                                         command=self.open_delete_graphs_modal)
+        btn_delete_graph.pack(pady=(0, 20), padx=20)
 
-        # Área de plot
-        self.plot_frame = ctk.CTkFrame(self)
-        self.plot_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        btn_clear_all = ctk.CTkButton(self.menu_frame, text="Limpar todos os gráficos", command=self.clear_all_graphs)
+        btn_clear_all.pack(pady=(0, 20), padx=20)
 
-        #Iniciando o canvas
-        self.canvas = None
+        self.graphs = []  # Cada item: dict {frame, canvas, name}
+        self.show_initial_graph_area()
 
         self.centralize_window()
-        self.bring_fwd_window()
 
     def create_submenu(self):
         #Export Menu
@@ -57,102 +51,108 @@ class PlotWindow(ctk.CTkToplevel):
         report_menu.add_command(label="Gerar Relatório", command=self.export_report)
         report_menu.add_command(label="Exportar Modelos", command=self.export_models)
 
-    def make_checkboxes(self):
-        models = list(self.predictions.keys())
-        options = []
-        for model in models:
-            if model == "LHC":
-                options.append(("LHC - Previsão", "lhc_pred")),
-                options.append(("LHC - Curva de Aprendizado", "lhc_loss"))
-            if model == "NBEATS":
-                options.append(("N-BEATS - Previsão", "nbeats_pred")),
-                options.append(("N-BEATS - Curva de Aprendizado", "nbeats_loss"))
-            if model == "NHiTS":
-                options.append(("N-HiTS - Previsão", "nhits_pred")),
-                options.append(("N-HiTS - Curva de Aprendizado", "nhits_loss"))
+    def show_initial_graph_area(self):
+        # Remove frame existente se houver
+        if hasattr(self, 'graph_area_frame'):
+            self.graph_area_frame.destroy()
+        self.graph_area_frame = ctk.CTkFrame(self)
+        self.graph_area_frame.pack(side="right", fill="both", expand=True, padx=5, pady=5)
+        self.initial_label = ctk.CTkLabel(
+            self.graph_area_frame,
+            text="Clique em 'Novo Gráfico' para adicionar gráficos",
+            font=ctk.CTkFont(size=18)
+        )
+        self.initial_label.place(relx=0.5, rely=0.5, anchor="center")
 
-        for text, key in options:
-            self.check_vars[key] = ctk.BooleanVar(value=False)
-            cb = ctk.CTkCheckBox(self.plot_menu_frame, text=text, variable=self.check_vars[key],
-                                 command=self.update_plot)
-            cb.pack(anchor="w", pady=4)
+    def open_new_graph_modal(self):
+        CreateGraphModal(self, self.series_list, self.predictions_list, self.residuals_list, self.add_graph)
 
-    def update_selection(self):
-        self.selections = {k: v.get() for k, v in self.check_vars.items()}
+    def open_delete_graphs_modal(self):
+        if not self.graphs:
+            return
+        names = [g["name"] for g in self.graphs]
+        DeleteGraphsModal(self, names, self.delete_graphs)
 
-    def update_plot(self):
-        plots = []
-        self.update_selection()
+    def add_graph(self, name, selected_data_indices):
+        # Ao primeiro gráfico, destrói área inicial e cria novo frame grid
+        if hasattr(self, "initial_label") and self.initial_label.winfo_exists():
+            self.graph_area_frame.destroy()
+            self.graph_area_frame = ctk.CTkFrame(self)
+            self.graph_area_frame.pack(side="right", fill="both", expand=True, padx=5, pady=5)
+            self.graphs = []
+        frame = ctk.CTkFrame(self.graph_area_frame, corner_radius=10, fg_color="#222222")
 
-        if self.selections.get("lhc_pred", False):
-            plots.append((f"LHC\nMAPE: {self.metrics.mape['LHC']:.3f}%, RMSE: {self.metrics.rmse['LHC']:.3f}",
-                          self.timeseries, self.predictions["LHC"], "blue"))
+        fig = Figure(figsize=(4, 3), dpi=100)
+        ax = fig.add_subplot(111)
 
-        if self.selections.get("nbeats_pred", False):
-            plots.append((f"N-BEATS\nMAPE: {self.metrics.mape['NBEATS']:.3f}%, RMSE: {self.metrics.rmse['NBEATS']:.3f}",
-                          self.timeseries, self.predictions["NBEATS"], "green"))
+        for idx in selected_data_indices["Séries"]:
+            ax.plot(self.series_list[idx], label=f"Série {idx + 1}")
+        for idx in selected_data_indices["Previsões"]:
+            ax.plot(self.predictions_list[idx], label=f"Previsão {idx + 1}", linestyle='--')
+        for idx in selected_data_indices["Resíduos"]:
+            ax.plot(self.residuals_list[idx], label=f"Resíduo {idx + 1}", linestyle=':')
 
-        if self.selections.get("nhits_pred", False):
-            plots.append((f"N-HiTS\nMAPE: {self.metrics.mape['NHiTS']:.3f}%, RMSE: {self.metrics.rmse['NHiTS']:.3f}",
-                          self.timeseries, self.predictions["NHiTS"], "red"))
+        ax.legend()
+        ax.grid(True)
+        ax.set_title(name)
 
-        learning_curves = []
-        if self.selections.get("lhc_loss", False):
-            learning_curves.append(("LHC Loss", self.loss_curves["LHC"], "blue"))
-        if self.selections.get("nbeats_loss", False):
-            learning_curves.append(("N-BEATS Loss", self.loss_curves["NBEATS"], "green"))
-        if self.selections.get("nhits_loss", False):
-            learning_curves.append(("N-HiTS Loss", self.loss_curves["NHiTS"], "red"))
+        canvas = FigureCanvasTkAgg(fig, master=frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
 
-        total_plots = len(plots) + (1 if learning_curves else 0)
+        self.graphs.append({"frame": frame, "canvas": canvas, "name": name})
+        self.update_grid_layout()
 
-        if total_plots == 0:
-            if self.canvas:
-                self.canvas.get_tk_widget().destroy()
-                self.canvas = None
+    def delete_graphs(self, names_to_delete):
+        to_remove = [g for g in self.graphs if g["name"] in names_to_delete]
+        for g in to_remove:
+            g["frame"].destroy()
+            self.graphs.remove(g)
+        self.update_grid_layout()
+        if len(self.graphs) == 0:
+            self.show_initial_graph_area()
+
+    def clear_all_graphs(self):
+        for g in self.graphs:
+            g["frame"].destroy()
+        self.graphs.clear()
+        self.show_initial_graph_area()
+
+    def update_grid_layout(self):
+        total = len(self.graphs)
+        if total == 0:
             return
 
-        if total_plots == 1:
-            rows, cols = 1, 1
-        else:
-            cols = 2
-            rows = (total_plots + cols - 1) // cols
+        # Limpa configuração antiga da grid
+        for i in range(0, 50):  # 50 normalmente é suficiente para projetos visuais
+            self.graph_area_frame.grid_rowconfigure(i, weight=0)
+            self.graph_area_frame.grid_columnconfigure(i, weight=0)
 
-        fig, axs = plt.subplots(rows, cols, figsize=(12, 4 * rows))
+        # Calcula novo layout
+        cols = math.ceil(math.sqrt(total))
+        rows = math.ceil(total / cols)
 
-        if isinstance(axs, plt.Axes):
-            axs = [axs]
-        else:
-            axs = axs.flatten()
+        for r in range(rows):
+            self.graph_area_frame.grid_rowconfigure(r, weight=1)
+        for c in range(cols):
+            self.graph_area_frame.grid_columnconfigure(c, weight=1)
 
-        i = 0
-        for title, base, pred, color in plots:
-            axs[i].plot(base.time_index, base.values(), label="Original", color='black')
-            axs[i].plot(pred.time_index, pred.values(), label="Previsão", color=color)
-            axs[i].set_title(title)
-            axs[i].legend()
-            i += 1
+        for graph in self.graphs:
+            graph["frame"].grid_forget()
 
-        if learning_curves:
-            for name, loss, color in learning_curves:
-                axs[i].plot(range(len(loss)), loss, label=name, color=color)
-            axs[i].set_title("Curvas de Aprendizado")
-            axs[i].set_xlabel("Epoch")
-            axs[i].set_ylabel("Perda")
-            axs[i].legend()
-            i += 1
+        for idx, graph in enumerate(self.graphs):
+            r = idx // cols
+            c = idx % cols
+            graph["frame"].grid(row=r, column=c, sticky="nsew", padx=5, pady=5)
 
-        for j in range(i, len(axs)):
-            fig.delaxes(axs[j])
-
-        fig.tight_layout()
-
-        if self.canvas:
-            self.canvas.get_tk_widget().destroy()
-
-        self.canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
-        self.canvas.draw()
-        self.canvas.get_tk_widget().pack(fill="both", expand=True)
+    def centralize_window(self, width=1200,height=700):
+        window_width = width
+        window_height = height
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        x = round((screen_width - window_width) // 2, -1)
+        y = round((screen_height - window_height) // 2, -1)
+        self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
     def export_models(self):
         for name, model in self.models.items():
@@ -246,16 +246,123 @@ class PlotWindow(ctk.CTkToplevel):
             counter += 1
         return filename
 
-    def centralize_window(self):
-        # window_width = round(self.winfo_width(),-1)
-        # window_height = round(self.winfo_height(),-1)
-        window_width = 1000
-        window_height = 600
+class CreateGraphModal(ctk.CTkToplevel):
+    def __init__(self, parent, series_list, predictions_list, residuals_list, callback):
+        super().__init__(parent)
+        self.title("Novo Gráfico")
+        self.callback = callback
+
+        self.series_list = series_list
+        self.predictions_list = predictions_list
+        self.residuals_list = residuals_list
+
+        self.check_vars = {
+            "Séries": [],
+            "Previsões": [],
+            "Resíduos": []
+        }
+
+        ctk.CTkLabel(self, text="Nome do gráfico:", font=ctk.CTkFont(size=14)).pack(pady=(10, 0))
+        self.name_entry = ctk.CTkEntry(self)
+        self.name_entry.pack(pady=(0, 15), padx=20, fill="x")
+        self.name_entry.focus()
+
+        ctk.CTkLabel(self, text="Selecione as opções para o gráfico", font=ctk.CTkFont(size=16, weight="bold")).pack(
+            pady=10)
+
+        self.create_section("Séries", self.series_list)
+        self.create_section("Previsões", self.predictions_list)
+        self.create_section("Resíduos", self.residuals_list)
+
+        btn_frame = ctk.CTkFrame(self)
+        btn_frame.pack(pady=20)
+
+        btn_cancel = ctk.CTkButton(btn_frame, text="Cancelar", command=self.destroy)
+        btn_cancel.grid(row=0, column=0, padx=10)
+
+        btn_confirm = ctk.CTkButton(btn_frame, text="Criar Gráfico", command=self.confirm)
+        btn_confirm.grid(row=0, column=1, padx=10)
+
+    def create_section(self, title, data_list):
+        label = ctk.CTkLabel(self, text=title, font=ctk.CTkFont(size=14, weight="bold"))
+        label.pack(pady=(15, 5))
+
+        for i in range(len(data_list)):
+            var = ctk.BooleanVar(value=False)
+            cb = ctk.CTkCheckBox(self, text=f"{title} {i + 1}", variable=var)
+            cb.pack(anchor="w", padx=30)
+            self.check_vars[title].append(var)
+
+    def confirm(self):
+        name = self.name_entry.get().strip()
+        if not name:
+            return
+
+        selected_data = {
+            "Séries": [],
+            "Previsões": [],
+            "Resíduos": []
+        }
+        for key in self.check_vars:
+            for i, var in enumerate(self.check_vars[key]):
+                if var.get():
+                    selected_data[key].append(i)
+        if any(selected_data[key] for key in selected_data):
+            self.callback(name, selected_data)
+            self.destroy()
+
+    def centralize_window(self, width=480, height=380):
+        window_width = width
+        window_height = height
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         x = round((screen_width - window_width) // 2, -1)
         y = round((screen_height - window_height) // 2, -1)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
-    def bring_fwd_window(self):
-        self.attributes("-topmost", True)
+
+class DeleteGraphsModal(ctk.CTkToplevel):
+    def __init__(self, parent, graph_names, callback):
+        super().__init__(parent)
+        self.title("Excluir Gráficos")
+        self.geometry("300x400")
+        self.callback = callback
+
+        ctk.CTkLabel(self, text="Selecione os gráficos para excluir", font=ctk.CTkFont(size=14, weight="bold")).pack(
+            pady=10)
+
+        self.check_vars = []
+        self.graph_names = graph_names
+
+        self.check_frame = ctk.CTkScrollableFrame(self)
+        self.check_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        for name in graph_names:
+            var = ctk.BooleanVar(value=False)
+            cb = ctk.CTkCheckBox(self.check_frame, text=name, variable=var)
+            cb.pack(anchor="w", pady=2)
+            self.check_vars.append((var, name))
+
+        btn_frame = ctk.CTkFrame(self)
+        btn_frame.pack(pady=15)
+
+        btn_cancel = ctk.CTkButton(btn_frame, text="Cancelar", command=self.destroy)
+        btn_cancel.grid(row=0, column=0, padx=10)
+
+        btn_delete = ctk.CTkButton(btn_frame, text="Excluir Selecionados", command=self.delete_selected)
+        btn_delete.grid(row=0, column=1, padx=10)
+
+    def delete_selected(self):
+        to_delete = [name for (var, name) in self.check_vars if var.get()]
+        if to_delete:
+            self.callback(to_delete)
+            self.destroy()
+
+    def centralize_window(self, width=480, height=380):
+        window_width = width
+        window_height = height
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        x = round((screen_width - window_width) // 2, -1)
+        y = round((screen_height - window_height) // 2, -1)
+        self.geometry(f"{window_width}x{window_height}+{x}+{y} ")

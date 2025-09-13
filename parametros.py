@@ -93,24 +93,23 @@ class ConfirmExitWindow(ctk.CTkToplevel):
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
 class BasicWindow(ctk.CTkToplevel):
-    def __init__(self, series, index, remaining_models, configs=[], *args, **kwargs):
+    def __init__(self, series, index, remaining_models, configs=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if configs is None:
-            configs = []
         self.grab_set()
         self.grid_propagate(True)
         self.index = index
         self.selected_models = remaining_models
         self.model = None
-        self.series = series
+        self.timeseries = series
         self.parameters = None
+        self.configurations = configs if configs is not None else []
 
         self.option_frame = ctk.CTkFrame(self, fg_color="#DDDDDD")
         self.option_frame.place(x=0, y=0, relwidth=0.2, relheight=1)
         self.option_frame.columnconfigure(0, weight=1)
         self.hiperparameter_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
         self.hiperparameter_frame.place(relx=0.2, y=0, relwidth=0.8, relheight=1)
-        self.configurations= configs
+
 
         #Configuração
         self.label_confg_buttons= ctk.CTkLabel(master=self.option_frame,
@@ -149,7 +148,7 @@ class BasicWindow(ctk.CTkToplevel):
         # Fecha a janela atual e abre a próxima
         self.get_configurations()
         next_model_window = self.selected_models[self.index]["window"]
-        next_model_window(self.file, self.index+1, self.selected_models, self.configurations)
+        next_model_window(self.timeseries, self.index+1, self.selected_models, self.configurations)
         self.after(100, self.destroy)
 
     def centralize_window(self, width=1040,height=200):
@@ -171,16 +170,16 @@ class BasicWindow(ctk.CTkToplevel):
         inicial_model_run = self.configurations[0]
         self.configurations.pop(0)
         if inicial_model_run["model"] == "LHC":
-            ModelRunLHCWindow(inicial_model_run["parameters"], self.configurations, self.file)
+            ModelRunLHCWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
         if inicial_model_run["model"] == "N-BEATS":
-            ModelRunNBEATSWindow(inicial_model_run["parameters"], self.configurations, self.file)
+            ModelRunNBEATSWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
         if inicial_model_run["model"] == "N-HiTS":
-            ModelRunNHiTSWindow(inicial_model_run["parameters"], self.configurations, self.file)
+            ModelRunNHiTSWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
         self.destroy()
 
 class LHCModelWindow(BasicWindow):
-    def __init__(self, file, index, remaining_models, *args, **kwargs):
-        super().__init__(file, index, remaining_models,*args, **kwargs)
+    def __init__(self, series, index, remaining_models, *args, **kwargs):
+        super().__init__(series, index, remaining_models,*args, **kwargs)
         self.title("LHC - Escolha os Parâmetros")
 
         self.option_frame.place(x=0, y=0, relwidth=0.25, relheight=1)
@@ -373,8 +372,8 @@ class LHCModelWindow(BasicWindow):
         }
 
 class NModelWindow(BasicWindow):
-    def __init__(self,file, index, remaining_models, *args, **kwargs):
-        super().__init__(file, index, remaining_models, *args, **kwargs)
+    def __init__(self,series, index, remaining_models, *args, **kwargs):
+        super().__init__(series, index, remaining_models, *args, **kwargs)
 
         # Random State
         self.random_state = 42
