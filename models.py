@@ -2,6 +2,7 @@ import threading
 
 from darts.models import NBEATSModel
 from darts.models import NHiTSModel
+from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import TensorDataset, DataLoader
 
 from lhcmodel import *
@@ -79,7 +80,16 @@ class ModelRunWindow(ctk.CTkToplevel):
                                     residuals=self.residuals)
             self.destroy()
         else:
-            PlotWindow(self.series, self.predictions, self.residuals, self.losses)
+            for nome_modelo, data in self.predictions.items():
+                print(f"{nome_modelo}: {data}")
+            for nome_modelo, data in self.residuals.items():
+                print(f"{nome_modelo}: {data}")
+            for nome_modelo, data in self.losses.items():
+                print(f"{nome_modelo}: {data}")
+            for nome_modelo, data in self.models.items():
+                print(f"{nome_modelo}: {data}")
+
+            PlotWindow(self.series, self.predictions, self.residuals, self.losses, self.models)
             self.after(100, self.destroy)
 
     def centralize_window(self):
@@ -91,8 +101,8 @@ class ModelRunWindow(ctk.CTkToplevel):
         y = round((screen_height - window_height) // 2, -1)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
-    def bring_fwd_window(self):
-        self.attributes("-topmost", True)
+    # def bring_fwd_window(self):
+    #     self.attributes("-topmost", True)
 
 
 class ModelRunLHCWindow(ModelRunWindow):
@@ -100,7 +110,7 @@ class ModelRunLHCWindow(ModelRunWindow):
         super().__init__(params, configs, series, preds, losses, models, residuals)
         self.title("Treinamento LHCModel")
         self.centralize_window()
-        self.bring_fwd_window()
+        # self.bring_fwd_window()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -127,21 +137,46 @@ class ModelRunLHCWindow(ModelRunWindow):
         self.model = LHCModel(self.params, self.inputs.shape[2])
         self.loss_tracker = LossTracker()
 
-        # Thread pra treino não travar GUI
+        # Thread para treino não travar GUI
         threading.Thread(target=self.train_model, daemon=True).start()
 
     def train_model(self):
-        dataset = TensorDataset(self.inputs, self.targets)
-        train_loader = DataLoader(dataset, batch_size=self.params['batch_size'], shuffle=True)
+        train_dataset = TensorDataset(self.inputs, self.targets)
+        train_loader = DataLoader(train_dataset, batch_size=self.params['batch_size'], shuffle=True)
+
+        valid_input = torch.cat([self.valid_target, self.valid_cov], dim=2)
+        valid_inputs, valid_targets = series_to_batches([valid_input.cpu()], self.input_len, self.output_len)
+        valid_inputs = valid_inputs.to(self.device)
+        valid_targets = valid_targets.to(self.device)
+        valid_dataset = TensorDataset(valid_inputs, valid_targets)
+        valid_loader = DataLoader(valid_dataset, batch_size=self.params['batch_size'])
+
+        callbacks = [self.loss_tracker, ProgressBarCallback(self)]
+
+        if self.params.get('save_checkpoints', 'false').lower() == 'true':
+            checkpoint_callback = ModelCheckpoint(
+                monitor="val_loss",  # Agora monitoramos a loss de validação
+                mode="min",
+                save_top_k=1,
+                filename="lhc-best-model-{epoch:02d}-{val_loss:.4f}",
+                verbose=True
+            )
+            callbacks.append(checkpoint_callback)
+        else:
+            checkpoint_callback = None
 
         trainer = pl.Trainer(
             max_epochs=self.epochs,
-            callbacks=[self.loss_tracker, ProgressBarCallback(self)],
+            callbacks=callbacks,
             enable_progress_bar=False,
             logger=False,
         )
 
-        trainer.fit(self.model, train_loader)
+        trainer.fit(self.model, train_loader, valid_loader)
+
+        if checkpoint_callback and checkpoint_callback.best_model_path:
+            self.model = LHCModel.load_from_checkpoint(checkpoint_callback.best_model_path,input_size=self.inputs.shape[2])
+            self.model.to(self.device)
 
         self.after(0, self.post_training)
 
@@ -171,7 +206,7 @@ class ModelRunNBEATSWindow(ModelRunWindow):
         super().__init__(params, configs, series, preds, losses, models, residuals)
         self.title("N-BEATS - Executando Modelo")
         self.centralize_window()
-        self.bring_fwd_window()
+        # self.bring_fwd_window()
 
         self.loss_tracker = LossTracker()
         self.model_creation()
@@ -211,7 +246,7 @@ class ModelRunNBEATSWindow(ModelRunWindow):
 
     def after_training_done(self):
         """Ações após treino finalizado"""
-        if self.params.get('save_checkpoints') == 'true':
+        if self.params.get('save_checkpoints','false') == 'true':
             self.model = NBEATSModel.load_from_checkpoint(self.model.model_name)
         self.predict_model()
 
@@ -223,10 +258,6 @@ class ModelRunNBEATSWindow(ModelRunWindow):
         self.label_progress.configure(text="Concluído!")
         self.losses["NBEATS"] = self.loss_tracker.losses
         self.models["NBEATS"] = self.model
-        print(self.predictions["NBEATS"])
-        print(self.models["NBEATS"])
-        print(self.losses["NBEATS"])
-        print(self.residuals["NBEATS"])
         self.after(1000, self.next_model_run)
 
     def start_residuals(self):
@@ -243,11 +274,11 @@ class ModelRunNHiTSWindow(ModelRunWindow):
         super().__init__(params, configs, series, preds, losses, models, residuals)
         self.title("N-HiTS - Executando Modelo")
         self.centralize_window()
-        self.bring_fwd_window()
+        # self.bring_fwd_window()
 
         self.loss_tracker = LossTracker()
         self.model_creation()
-        self.after(100, self.model_train)
+        self.after(100, self.start_model_train)
 
     def model_creation(self):
         self.epochs = self.params["n_epochs"]
@@ -281,7 +312,7 @@ class ModelRunNHiTSWindow(ModelRunWindow):
 
     def after_training_done(self):
         """Ações após treino finalizado"""
-        if self.params.get('save_checkpoints') == 'true':
+        if self.params.get('save_checkpoints','false') == 'true':
             self.model = NHiTSModel.load_from_checkpoint(self.model.model_name)
         self.predict_model()
 
@@ -294,10 +325,6 @@ class ModelRunNHiTSWindow(ModelRunWindow):
         self.label_progress.configure(text="Concluído!")
         self.losses["NHiTS"] = self.loss_tracker.losses
         self.models["NHiTS"] = self.model
-        print(self.predictions["NHiTS"])
-        print(self.models["NHiTS"])
-        print(self.losses["NHiTS"])
-        print(self.residuals["NHiTS"])
         self.after(1000, self.next_model_run)
 
     def start_residuals(self):

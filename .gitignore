@@ -5,6 +5,7 @@ DadosGFS/
 
 # Logs do Darts
 darts_logs/
+checkpoints/
 
 # Ambiente virtual
 .venv/

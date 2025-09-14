@@ -14,13 +14,14 @@ from torch import save as torch_save
 
 
 class PlotWindow(ctk.CTkToplevel):
-    def __init__(self, series, predictions, residuals, losses):
+    def __init__(self, series, predictions, residuals, losses, models):
         super().__init__()
         self.title("Visualização de Resultados")
         self.series = series
         self.predictions = predictions
         self.residuals = residuals
         self.losses = losses
+        self.models = models
 
         # Menu lateral
         self.menu_frame = ctk.CTkFrame(self, width=200)

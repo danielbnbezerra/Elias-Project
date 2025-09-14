@@ -32,7 +32,6 @@ class LSTMModel(nn.Module):
         return out
 
 class LHCModel(pl.LightningModule):
-    """Modelo Lightning encapsulando a arquitetura LSTM e lógica de treino."""
     def __init__(self, params, input_size):
         super().__init__()
 
@@ -59,6 +58,14 @@ class LHCModel(pl.LightningModule):
         loss = self.loss_fn(y_hat, y[:, -1, :])
         self.log('train_loss', loss, prog_bar=True, on_epoch=True)
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        val_loss = self.loss_fn(y_hat, y[:, -1, :])
+        # Loga a loss de validação
+        self.log('val_loss', val_loss, prog_bar=True, on_epoch=True)
+        return val_loss
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)

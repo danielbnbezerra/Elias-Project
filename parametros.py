@@ -1,4 +1,5 @@
 import shutil
+import ast
 
 from tkinter import messagebox, filedialog
 
@@ -64,12 +65,14 @@ class Tooltip:
 class ConfirmExitWindow(ctk.CTkToplevel):
     @staticmethod
     def cleanup_darts_logs():
-        logs_path = "darts_logs"
-        if os.path.exists(logs_path):
-            try:
-                shutil.rmtree(logs_path)
-            except Exception as e:
-                print(f"Erro ao remover darts_logs: {e}")
+
+        folders_to_delete = ["darts_logs", "checkpoints"]
+        for folder in folders_to_delete:
+            if os.path.exists(folder):
+                try:
+                    shutil.rmtree(folder)
+                except Exception as e:
+                    print(f"Erro ao remover pasta {folder}: {e}")
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -494,7 +497,6 @@ class NBEATSModelWindow(NModelWindow):
         super().__init__(file, index, remaining_models, *args, **kwargs)
         self.title("N-BEATS - Escolha os Parâmetros")
         self.centralize_window(1070,200)
-        self.bring_fwd_window()
 
         #Expansion Coefficient Dimensionality
         self.label_expansion_coefficient_dim = ctk.CTkLabel(master=self.hiperparameter_frame, text="Expansion Coeff Dim:", font=("Arial", 14))
@@ -629,32 +631,40 @@ class NBEATSModelWindow(NModelWindow):
 
 
 class NHiTSModelWindow(NModelWindow):
+    @staticmethod
+    def get_option(option_value):
+        try:
+            return list(map(int, ast.literal_eval(option_value)))
+        except Exception:
+            return None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("N-HiTS - Escolha os Parâmetros")
         self.centralize_window(1050,200)
-        self.bring_fwd_window()
 
-        # Number of Levels
-        self.label_num_levels = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Levels:", font=("Arial", 14))
-        self.label_num_levels.grid(row=0, column=4, padx=5, pady=5)
-        self.entry_num_levels = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
-                                                      state="disabled")
-        self.entry_num_levels.grid(row=0, column=5, padx=5, pady=5)
+        # Pooling Kernel Sizes
+        self.label_pooling_kernel_sizes = ctk.CTkLabel(master=self.hiperparameter_frame, text="Pooling Kernel Sizes:", font=("Arial", 14))
+        self.label_pooling_kernel_sizes.grid(row=0, column=4, padx=5, pady=5)
+        self.pooling_kernel_sizes = ["Nenhum","[3, 5]","[5, 7, 9]","[3, 3, 3]"]
+        self.options_pooling_kernel_sizes = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.pooling_kernel_sizes, state="disabled")
+        self.options_pooling_kernel_sizes.set("Selecione/Digite")
+        self.options_pooling_kernel_sizes.grid(row=0, column=5, padx=5, pady=5)
 
         # Interpolation Mode
-        self.label_interpolation_mode = ctk.CTkLabel(master=self.hiperparameter_frame, text="Interpolation Mode:",
-                                                      font=("Arial", 14))
-        self.label_interpolation_mode.grid(row=1, column=4, padx=5, pady=5)
-        self.interpolation_mode = ["Linear", "Nearest", "Cubic", "Spline"]
-        self.option_interpolation_mode = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.interpolation_mode,
-                                                    state="disabled")
-        self.option_interpolation_mode.set("Selecione")
-        self.option_interpolation_mode.grid(row=1, column=5, padx=5, pady=5)
+        self.label_n_freq_downsample = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Freq Downsample:", font=("Arial", 14))
+        self.label_n_freq_downsample.grid(row=1, column=4, padx=5, pady=5)
+        self.n_freq_downsample = ["Nenhum","[1, 2]","[1, 1, 2]","[1, 2, 4]"]
+        self.option_n_freq_downsample = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_freq_downsample, state="disabled")
+        self.option_n_freq_downsample.set("Selecione/Digite")
+        self.option_n_freq_downsample.grid(row=1, column=5, padx=5, pady=5)
 
-        Tooltip(self.label_num_levels, text="Número padrão de níveis hierárquicos para interpolação multiescala.\n"
-                                            "Recomenda-se valores inteiros entre 2 a 6.")
-        Tooltip(self.label_interpolation_mode, text="Modo de interpolação padrão usado para suavizar as representações ao longo dos níveis.")
+        Tooltip(self.label_pooling_kernel_sizes, text="Tamanhos dos kernels usados nas operações de pooling dentro do modelo. Pooling é uma operação\n"
+                                                      "que reduz a dimensão temporal da série mantendo as características mais importantes.\n"
+                                                      "Formato tupla[tupla[inteiro]]. Recomenda-se valores de 2 a 10.")
+        Tooltip(self.label_n_freq_downsample, text="Lista de inteiros que definem o fator de downsampling aplicado na frequência da série para diferentes\n"
+                                                   "stacks do modelo, basicamente reduzindo a resolução temporal dos dados processados em cada nível.\n"
+                                                   "Formato tupla[tupla[inteiro]]. Recomenda-se valores de 1 a 4.")
 
     def disable_parameters(self):
         self.entry_input_chunck_length.configure(state="disabled")
@@ -667,8 +677,8 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
         self.option_n_epochs.configure(state="disabled")
-        self.entry_num_levels.configure(state="disabled")
-        self.option_interpolation_mode.configure(state="disabled")
+        self.options_pooling_kernel_sizes.configure(state="disabled")
+        self.option_n_freq_downsample.configure(state="disabled")
         self.option_save_checkpoints.configure(state="disabled")
 
     def enable_parameters(self):
@@ -682,8 +692,8 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.configure(state="normal")
         self.option_batch_size.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
-        self.entry_num_levels.configure(state="normal")
-        self.option_interpolation_mode.configure(state="normal")
+        self.options_pooling_kernel_sizes.configure(state="normal")
+        self.option_n_freq_downsample.configure(state="normal")
         self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice):  # A DEFINIR ESCOLHAS DE VALORES AINDA
@@ -700,8 +710,9 @@ class NHiTSModelWindow(NModelWindow):
             self.entry_dropout.insert(0, "0.3")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.entry_num_levels.insert(0,"3")
-            self.option_interpolation_mode.set("Linear")
+            self.option_n_epochs.set("100")
+            self.options_pooling_kernel_sizes.set("Nenhum")
+            self.option_n_freq_downsample.set("Nenhum")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -719,8 +730,8 @@ class NHiTSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("750")
-            self.entry_num_levels.insert(0,"5")
-            self.option_interpolation_mode.set("Nearest")
+            self.options_pooling_kernel_sizes.set("[3, 5]")
+            self.option_n_freq_downsample.set("[1, 2]")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -738,8 +749,8 @@ class NHiTSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("1000")
-            self.entry_num_levels.insert(0,"4")
-            self.option_interpolation_mode.set("Cubic")
+            self.options_pooling_kernel_sizes.set("[3, 3, 3]")
+            self.option_n_freq_downsample.set("[1, 2, 4]")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -759,8 +770,8 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
-        self.entry_num_levels.delete(0,"end")
-        self.option_interpolation_mode.set("Selecione")
+        self.options_pooling_kernel_sizes.set("Selecione/Digite")
+        self.option_n_freq_downsample.set("Selecione/Digite")
         self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
@@ -776,8 +787,8 @@ class NHiTSModelWindow(NModelWindow):
             "dropout": float(self.entry_dropout.get()),
             "activation": self.option_activation.get(),
             "batch_size": int(self.option_batch_size.get()),
-            "num_levels": int(self.entry_num_levels.get()),
-            "interpolation_mode": self.option_interpolation_mode.get().lower(),
+            "pooling_kernel_sizes": self.get_option(self.options_pooling_kernel_sizes.get()),
+            "n_freq_downsample": self.get_option(self.option_n_freq_downsample.get()),
             "save_checkpoints": self.option_save_checkpoints.get().lower()
         }
 
