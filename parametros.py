@@ -1,10 +1,7 @@
-from models import *
-import customtkinter as ctk
-import tkinter as tk
 from tkinter import messagebox, filedialog
-from tkcalendar import DateEntry
 
-#JANELA PRINCIPAL COM CHECKBOX EM VEZ DE OPTION MENU, janelas de parâmetros abrem para cada checkbox marcada.
+from models import *
+
 
 class Tooltip:
     def __init__(self, widget, text, delay=500):

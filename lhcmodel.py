@@ -1,12 +1,12 @@
 import torch
+
 import torch.nn as nn
-import threading
-import torch
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Callback
-from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
+import pytorch_lightning as pl
+
 from darts import TimeSeries
+from pytorch_lightning.callbacks import Callback
+
 
 class ProgressBarCallback(Callback):
     def __init__(self, gui):

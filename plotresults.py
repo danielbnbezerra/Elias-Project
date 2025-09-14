@@ -1,16 +1,17 @@
+import math
 import os
+import inspect
+
 import tkinter as tk
 import customtkinter as ctk
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-from torch import save as torch_save
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import pandas as pd
+
 from matplotlib.backends.backend_pdf import PdfPages
-from darts import TimeSeries
-from series import MetricModels
-import math
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from torch import save as torch_save
+
 
 class PlotWindow(ctk.CTkToplevel):
     def __init__(self, series, predictions, residuals, losses):

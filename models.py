@@ -1,11 +1,12 @@
-from series import *
-from plotresults import *
-from lhcmodel import *
-import customtkinter as ctk
+import threading
+
 from darts.models import NBEATSModel
 from darts.models import NHiTSModel
-from pytorch_lightning.callbacks import Callback
-import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
+
+from lhcmodel import *
+from plotresults import *
+
 
 class LossTracker(Callback):
     def __init__(self):
