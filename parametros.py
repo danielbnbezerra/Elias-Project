@@ -140,6 +140,7 @@ class BasicWindow(ctk.CTkToplevel):
                                                "para o modelo ou edite manualmente os \n"
                                                "parâmetros:")
         Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
+
     def get_configurations(self):
         self.get_parameters()
         self.configurations.append({"model":self.selected_models[self.index-1]["name"],"parameters":self.parameters})
@@ -151,9 +152,7 @@ class BasicWindow(ctk.CTkToplevel):
         next_model_window(self.timeseries, self.index+1, self.selected_models, self.configurations)
         self.after(100, self.destroy)
 
-    def centralize_window(self, width=1040,height=200):
-        # window_width = round(self.winfo_width(),-1)
-        # window_height = round(self.winfo_height(),-1)
+    def centralize_window(self, width=1060,height=200):
         window_width = width
         window_height = height
         screen_width = self.winfo_screenwidth()
@@ -181,56 +180,56 @@ class LHCModelWindow(BasicWindow):
     def __init__(self, series, index, remaining_models, *args, **kwargs):
         super().__init__(series, index, remaining_models,*args, **kwargs)
         self.title("LHC - Escolha os Parâmetros")
+        self.centralize_window(760, 200)
+        self.bring_fwd_window()
 
         self.option_frame.place(x=0, y=0, relwidth=0.25, relheight=1)
         self.hiperparameter_frame.place(relx=0.25, y=0, relwidth=0.75, relheight=1)
 
-        #EDITAR AS ENTRADAS DO MODELO NA JANELA
-
         # Random State
         self.random_state = 42
 
-        # Input Size
-        self.label_input_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Input Size:",
+        # Input Length
+        self.label_input_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Input Length:",
                                                       font=("Arial", 14))
-        self.label_input_size.grid(row=0, column=0, padx=5, pady=5)
-        self.entry_input_size = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
+        self.label_input_length.grid(row=0, column=0, padx=5, pady=5)
+        self.entry_input_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
                                                       state="disabled")
-        self.entry_input_size.grid(row=0, column=1, padx=5, pady=5)
+        self.entry_input_length.grid(row=0, column=1, padx=5, pady=5)
 
-        # Sequence Length
-        self.label_sequence_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Sequence Length:",
-                                             font=("Arial", 14))
-        self.label_sequence_length.grid(row=1, column=0, padx=5, pady=5)
-        self.entry_sequence_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
-                                             state="disabled")
-        self.entry_sequence_length.grid(row=1, column=1, padx=5, pady=5)
-
-        # Output Size
-        self.label_output_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Output Size:", font=("Arial", 14))
-        self.label_output_size.grid(row=2, column=0, padx=5, pady=5)
-        self.entry_output_size = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
-        self.entry_output_size.grid(row=2, column=1, padx=5, pady=5)
+        # Output Length
+        self.label_output_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Output Length:", font=("Arial", 14))
+        self.label_output_length.grid(row=1, column=0, padx=5, pady=5)
+        self.entry_output_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
+        self.entry_output_length.grid(row=1, column=1, padx=5, pady=5)
 
         # Hidden Size
         self.label_hidden_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Hidden Size:",
                                              font=("Arial", 14))
-        self.label_hidden_size.grid(row=3, column=0, padx=5, pady=5)
+        self.label_hidden_size.grid(row=2, column=0, padx=5, pady=5)
         self.entry_hidden_size = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
-        self.entry_hidden_size.grid(row=3, column=1, padx=5, pady=5)
+        self.entry_hidden_size.grid(row=2, column=1, padx=5, pady=5)
 
         # Number of Layers
         self.label_num_layers = ctk.CTkLabel(master=self.hiperparameter_frame, text="Number of Layers:",
                                              font=("Arial", 14))
-        self.label_num_layers.grid(row=4, column=0, padx=5, pady=5)
+        self.label_num_layers.grid(row=3, column=0, padx=5, pady=5)
         self.entry_num_layers = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
-        self.entry_num_layers.grid(row=4, column=1, padx=5, pady=5)
+        self.entry_num_layers.grid(row=3, column=1, padx=5, pady=5)
 
         # Dropout
         self.label_dropout = ctk.CTkLabel(master=self.hiperparameter_frame, text="Dropout:", font=("Arial", 14))
-        self.label_dropout.grid(row=0, column=2, padx=5, pady=5)
+        self.label_dropout.grid(row=4, column=0, padx=5, pady=5)
         self.entry_dropout = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
-        self.entry_dropout.grid(row=0, column=3, padx=5, pady=5)
+        self.entry_dropout.grid(row=4, column=1, padx=5, pady=5)
+
+        # Learning Rate
+        self.label_learning_rate = ctk.CTkLabel(master=self.hiperparameter_frame, text="Learning Rate:",
+                                              font=("Arial", 14))
+        self.label_learning_rate.grid(row=0, column=2, padx=5, pady=5)
+        self.entry_learning_rate = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
+                                            state="disabled")
+        self.entry_learning_rate.grid(row=0, column=3, padx=5, pady=5)
 
         # Batch Size
         self.label_batch_size = ctk.CTkLabel(master=self.hiperparameter_frame, text="Batch Size:", font=("Arial", 14))
@@ -241,104 +240,109 @@ class LHCModelWindow(BasicWindow):
         self.option_batch_size.set("Selecione")
         self.option_batch_size.grid(row=1, column=3, padx=5, pady=5)
 
-        # Learning Rate
-        self.label_learning_rate = ctk.CTkLabel(master=self.hiperparameter_frame, text="Learning Rate:",
-                                              font=("Arial", 14))
-        self.label_learning_rate.grid(row=2, column=2, padx=5, pady=5)
-        self.entry_learning_rate = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
-                                            state="disabled")
-        self.entry_learning_rate.grid(row=2, column=3, padx=5, pady=5)
-
         # Number of Epochs
         self.label_n_epochs = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Epochs:", font=("Arial", 14))
-        self.label_n_epochs.grid(row=3, column=2, padx=5, pady=5)
+        self.label_n_epochs.grid(row=2, column=2, padx=5, pady=5)
         self.n_epochs = ['100', '200', '300', '400', '500', '1000']
         self.option_n_epochs = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_epochs, state="disabled")
         self.option_n_epochs.set("Selecione/Digite")
-        self.option_n_epochs.grid(row=3, column=3, padx=5, pady=5)
+        self.option_n_epochs.grid(row=2, column=3, padx=5, pady=5)
+
+        # Save Checkpoints
+        self.label_save_checkpoints = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoints:",
+                                                   font=("Arial", 14))
+        self.label_save_checkpoints.grid(row=3, column=2, padx=5, pady=5)
+        self.boolean_options = ['True', 'False']
+        self.option_save_checkpoints = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options,
+                                                         state="disabled")
+        self.option_save_checkpoints.set("Selecione")
+        self.option_save_checkpoints.grid(row=3, column=3, padx=5, pady=5)
 
         #Tooltips
-        Tooltip(self.label_input_size, text="Qtd de variáveis de entrada. No caso de série univariada, o valor é 1.")
-        Tooltip(self.label_sequence_length, text="Determina o tamanho da janela de valores de entrada no modelo.")
-        Tooltip(self.label_output_size, text="Qtd de variáveis de saída. No caso de previsão univariada, o valor é 1.")
-        Tooltip(self.label_num_layers, text="Quantidade de camadas LSTM totalmente conectadas.")
-        Tooltip(self.label_hidden_size, text="Determina o número de features na camada oculta a serem aprendidos em cada tempo t.")
+        Tooltip(self.label_input_length, text="Quantidade de passos anteriores que o modelo utiliza para fazer a previsão em cada amostra.\n"
+                                              "Janelas maiores capturam mais histórico, mas podem aumentar o tempo de treino. Valores inteiros.\n"
+                                              "Recomenda-se de 10 a 60.")
+        Tooltip(self.label_output_length, text="Quantidade de passos futuros que o modelo vai aprender a prever durante\n"
+                                               "o treinamento em cada amostra. Valores Inteiros. Recomenda-se de 1 a 10.")
+        Tooltip(self.label_hidden_size,text="Quantos neurônios cada camada LSTM terá. Mais neurônios podem capturar padrões complexos, mas tornam o modelo mais pesado.\n"
+                                            "Valores inteiros. Recomenda-se potências de base 2, de 32 (2\u2075) a 512 (2\u2079)")
+        Tooltip(self.label_num_layers, text="Quantas camadas da rede LSTM serão empilhadas. Camadas extras aumentam a capacidade do modelo,\n"
+                                            "mas podem causar dificuldades no treino. Valores inteiros. Recomenda-se de 1 a 4.")
         Tooltip(self.label_dropout, text="A probabilidade de dropout a ser utilizada nas camadas totalmente conectadas.\n"
                                          "Recomenda-se entre 0.0 e 0.5.")
         Tooltip(self.label_batch_size, text="Número de amostras processadas por vez até que a atualização\n"
                                             "dos pesos em cada passagem de treinamento seja realizada.")
         Tooltip(self.label_learning_rate, text="Define a taxa de aprendizado por época.")
         Tooltip(self.label_n_epochs, text="Número de épocas em cada rodada de treinamento do modelo.")
+        Tooltip(self.label_save_checkpoints, text="Define se o modelo não treinado e os checkpoints do treinamento serão salvos automaticamente.")
 
-        self.centralize_window(710,200)
-        self.bring_fwd_window()
 
     def disable_parameters(self):
-        self.entry_input_size.configure(state="disabled")
-        self.entry_sequence_length.configure(state="disabled")
-        self.entry_output_size.configure(state="disabled")
+        self.entry_input_length.configure(state="disabled")
+        self.entry_output_length.configure(state="disabled")
         self.entry_hidden_size.configure(state="disabled")
         self.entry_num_layers.configure(state="disabled")
         self.entry_dropout.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
         self.entry_learning_rate.configure(state="disabled")
         self.option_n_epochs.configure(state="disabled")
+        self.option_save_checkpoints.configure(state="disabled")
 
     def enable_parameters(self):
-        self.entry_input_size.configure(state="normal")
-        self.entry_sequence_length.configure(state="normal")
-        self.entry_output_size.configure(state="normal")
+        self.entry_input_length.configure(state="normal")
+        self.entry_output_length.configure(state="normal")
         self.entry_hidden_size.configure(state="normal")
         self.entry_num_layers.configure(state="normal")
         self.entry_dropout.configure(state="normal")
         self.option_batch_size.configure(state="normal")
         self.entry_learning_rate.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
+        self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice):
         if choice == 'Opção 1':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_size.insert(0, "1")
-            self.entry_sequence_length.insert(0, "7")
-            self.entry_output_size.insert(0,"1")
+            self.entry_input_length.insert(0, "1")
+            self.entry_output_length.insert(0, "7")
             self.entry_hidden_size.insert(0,"32")
             self.entry_num_layers.insert(0, "1")
             self.entry_dropout.insert(0, "0.0")
             self.entry_learning_rate.insert(0,"0.01")
             self.option_batch_size.set("32")
             self.option_n_epochs.set("100")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Opção 2':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_size.insert(0, "1")
-            self.entry_sequence_length.insert(0, "7")
-            self.entry_output_size.insert(0, "1")
+            self.entry_input_length.insert(0, "1")
+            self.entry_output_length.insert(0, "7")
             self.entry_hidden_size.insert(0, "32")
             self.entry_num_layers.insert(0, "1")
             self.entry_dropout.insert(0, "0.0")
             self.entry_learning_rate.insert(0, "0.01")
             self.option_batch_size.set("32")
             self.option_n_epochs.set("100")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Opção 3':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_size.insert(0, "1")
-            self.entry_sequence_length.insert(0, "7")
-            self.entry_output_size.insert(0, "1")
+            self.entry_input_length.insert(0, "1")
+            self.entry_output_length.insert(0, "7")
             self.entry_hidden_size.insert(0, "32")
             self.entry_num_layers.insert(0, "1")
             self.entry_dropout.insert(0, "0.0")
             self.entry_learning_rate.insert(0, "0.01")
             self.option_batch_size.set("32")
             self.option_n_epochs.set("100")
+            self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Manual':
@@ -347,28 +351,29 @@ class LHCModelWindow(BasicWindow):
             self.clean_parameters()
 
     def clean_parameters(self):
-        self.entry_input_size.delete(0, "end")
-        self.entry_sequence_length.delete(0, "end")
-        self.entry_output_size.delete(0, "end")
+        self.entry_input_length.delete(0, "end")
+        self.entry_output_length.delete(0, "end")
         self.entry_hidden_size.delete(0, "end")
         self.entry_num_layers.delete(0, "end")
         self.entry_dropout.delete(0, "end")
         self.entry_learning_rate.delete(0, "end")
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
+        self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
         self.parameters = {
-            "input_size": int(self.entry_input_size.get()),
-            "sequence_length": int(self.entry_sequence_length.get()),
-            "output_size": int(self.entry_output_size.get()),
-            "num_layers": int(self.entry_num_layers.get()),
+            "input_length": int(self.entry_input_length.get()),
+            "output_length": int(self.entry_output_length.get()),
             "hidden_size": int(self.entry_hidden_size.get()),
-            "n_epochs": int(self.option_n_epochs.get()),
-            "random_state": self.random_state,
+            "num_layers": int(self.entry_num_layers.get()),
             "dropout": float(self.entry_dropout.get()),
+            "learning_rate": float(self.entry_learning_rate.get()),
             "batch_size": int(self.option_batch_size.get()),
-            "learning_rate": float(self.entry_learning_rate.get())
+            "n_epochs": int(self.option_n_epochs.get()),
+            "save_checkpoints": self.option_save_checkpoints.get().lower(),
+            "random_state": self.random_state,
+
         }
 
 class NModelWindow(BasicWindow):
@@ -444,13 +449,16 @@ class NModelWindow(BasicWindow):
         self.option_n_epochs.set("Selecione/Digite")
         self.option_n_epochs.grid(row=4, column=3, padx=5, pady=5)
 
-        #Save Checkpoints
-        self.label_save_checkpoints = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoints:", font=("Arial", 14))
-        self.label_save_checkpoints.grid(row=0, column=4, padx=5, pady=5)
+        # Save Checkpoints
+        self.label_save_checkpoints = ctk.CTkLabel(master=self.hiperparameter_frame, text="Save Checkpoints:",
+                                                   font=("Arial", 14))
+        self.label_save_checkpoints.grid(row=2, column=4, padx=5, pady=5)
         self.boolean_options = ['True', 'False']
-        self.option_save_checkpoints = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options, state="disabled")
+        self.option_save_checkpoints = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.boolean_options,
+                                                         state="disabled")
         self.option_save_checkpoints.set("Selecione")
-        self.option_save_checkpoints.grid(row=0, column=5, padx=5, pady=5)
+        self.option_save_checkpoints.grid(row=2, column=5, padx=5, pady=5)
+
 
         # self.bottom_page_buttons()
 
@@ -474,10 +482,20 @@ class NBEATSModelWindow(NModelWindow):
     def __init__(self, file, index, remaining_models, *args, **kwargs):
         super().__init__(file, index, remaining_models, *args, **kwargs)
         self.title("N-BEATS - Escolha os Parâmetros")
-        # self.update_idletasks()
-        # self.update()
-        self.centralize_window()
+        self.centralize_window(1070,200)
         self.bring_fwd_window()
+
+        #Expansion Coefficient Dimensionality
+        self.label_expansion_coefficient_dim = ctk.CTkLabel(master=self.hiperparameter_frame, text="Expansion Coeff Dim:", font=("Arial", 14))
+        self.label_expansion_coefficient_dim.grid(row=0, column=4, padx=5, pady=5)
+        self.entry_expansion_coefficient_dim = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
+        self.entry_expansion_coefficient_dim.grid(row=0, column=5, padx=5, pady=5)
+
+        self.label_save_checkpoints.grid(row=1, column=4, padx=5, pady=5)
+        self.option_save_checkpoints.grid(row=1, column=5, padx=5, pady=5)
+
+        Tooltip(self.label_expansion_coefficient_dim,text="Dimensionalidade dos coeficientes de expansão — controla quantos parâmetros a rede usa para representar padrões como tendência e sazonalidade.\n"
+                                 "Valores mais altos capturam maior complexidade, mas podem aumentar o risco de overfitting. Valores Inteiros. Recomenda-se de 3 a 7.")
 
     def disable_parameters(self):
         self.entry_input_chunck_length.configure(state="disabled")
@@ -490,6 +508,7 @@ class NBEATSModelWindow(NModelWindow):
         self.option_activation.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
         self.option_n_epochs.configure(state="disabled")
+        self.entry_expansion_coefficient_dim.configure(state="disabled")
         self.option_save_checkpoints.configure(state="disabled")
 
     def enable_parameters(self):
@@ -503,6 +522,7 @@ class NBEATSModelWindow(NModelWindow):
         self.option_activation.configure(state="normal")
         self.option_batch_size.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
+        self.entry_expansion_coefficient_dim.configure(state="normal")
         self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice): #A DEFINIR ESCOLHAS DE VALORES AINDA
@@ -520,6 +540,7 @@ class NBEATSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("100")
+            self.entry_expansion_coefficient_dim.insert(0,"5")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -537,6 +558,7 @@ class NBEATSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("750")
+            self.entry_expansion_coefficient_dim.insert(0,"3")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -554,6 +576,7 @@ class NBEATSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("1000")
+            self.entry_expansion_coefficient_dim.insert(0,"7")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -573,6 +596,7 @@ class NBEATSModelWindow(NModelWindow):
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
+        self.entry_expansion_coefficient_dim.delete(0, "end")
         self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
@@ -588,6 +612,7 @@ class NBEATSModelWindow(NModelWindow):
             "dropout": float(self.entry_dropout.get()),
             "activation": self.option_activation.get(),
             "batch_size": int(self.option_batch_size.get()),
+            "expansion_coefficient_dim": int(self.entry_expansion_coefficient_dim.get()),
             "save_checkpoints": self.option_save_checkpoints.get().lower()
         }
 
@@ -596,11 +621,29 @@ class NHiTSModelWindow(NModelWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("N-HiTS - Escolha os Parâmetros")
-
-        # self.update_idletasks()
-        # self.update()
-        self.centralize_window()
+        self.centralize_window(1050,200)
         self.bring_fwd_window()
+
+        # Number of Levels
+        self.label_num_levels = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Levels:", font=("Arial", 14))
+        self.label_num_levels.grid(row=0, column=4, padx=5, pady=5)
+        self.entry_num_levels = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
+                                                      state="disabled")
+        self.entry_num_levels.grid(row=0, column=5, padx=5, pady=5)
+
+        # Interpolation Mode
+        self.label_interpolation_mode = ctk.CTkLabel(master=self.hiperparameter_frame, text="Interpolation Mode:",
+                                                      font=("Arial", 14))
+        self.label_interpolation_mode.grid(row=1, column=4, padx=5, pady=5)
+        self.interpolation_mode = ["Linear", "Nearest", "Cubic", "Spline"]
+        self.option_interpolation_mode = ctk.CTkOptionMenu(master=self.hiperparameter_frame, values=self.interpolation_mode,
+                                                    state="disabled")
+        self.option_interpolation_mode.set("Selecione")
+        self.option_interpolation_mode.grid(row=1, column=5, padx=5, pady=5)
+
+        Tooltip(self.label_num_levels, text="Número padrão de níveis hierárquicos para interpolação multiescala.\n"
+                                            "Recomenda-se valores inteiros entre 2 a 6.")
+        Tooltip(self.label_interpolation_mode, text="Modo de interpolação padrão usado para suavizar as representações ao longo dos níveis.")
 
     def disable_parameters(self):
         self.entry_input_chunck_length.configure(state="disabled")
@@ -613,6 +656,8 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
         self.option_n_epochs.configure(state="disabled")
+        self.entry_num_levels.configure(state="disabled")
+        self.option_interpolation_mode.configure(state="disabled")
         self.option_save_checkpoints.configure(state="disabled")
 
     def enable_parameters(self):
@@ -626,6 +671,8 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.configure(state="normal")
         self.option_batch_size.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
+        self.entry_num_levels.configure(state="normal")
+        self.option_interpolation_mode.configure(state="normal")
         self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice):  # A DEFINIR ESCOLHAS DE VALORES AINDA
@@ -642,7 +689,8 @@ class NHiTSModelWindow(NModelWindow):
             self.entry_dropout.insert(0, "0.3")
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
-            self.option_n_epochs.set("100")
+            self.entry_num_levels.insert(0,"3")
+            self.option_interpolation_mode.set("Linear")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -660,6 +708,8 @@ class NHiTSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("750")
+            self.entry_num_levels.insert(0,"5")
+            self.option_interpolation_mode.set("Nearest")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -677,6 +727,8 @@ class NHiTSModelWindow(NModelWindow):
             self.option_activation.set("ReLU")
             self.option_batch_size.set("16")
             self.option_n_epochs.set("1000")
+            self.entry_num_levels.insert(0,"4")
+            self.option_interpolation_mode.set("Cubic")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
@@ -696,6 +748,8 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
+        self.entry_num_levels.delete(0,"end")
+        self.option_interpolation_mode.set("Selecione")
         self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
@@ -711,6 +765,8 @@ class NHiTSModelWindow(NModelWindow):
             "dropout": float(self.entry_dropout.get()),
             "activation": self.option_activation.get(),
             "batch_size": int(self.option_batch_size.get()),
+            "num_levels": int(self.entry_num_levels.get()),
+            "interpolation_mode": self.option_interpolation_mode.get().lower(),
             "save_checkpoints": self.option_save_checkpoints.get().lower()
         }
 

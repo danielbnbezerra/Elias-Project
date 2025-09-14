@@ -61,7 +61,7 @@ class Application(ctk.CTk):
         for widget in self.main_selected_options_frame.winfo_children():
             widget.destroy()
 
-        if option == "option_1":
+        if option == "display":
             #Seleção do Modelo
 
             # Intervalos
@@ -267,7 +267,7 @@ SOFTWARE.""")
         def get_data_params(data_parameters):
             self.series_files = data_parameters
             messagebox.showinfo("Sucesso!", "Arquivos Carregados.")
-            self.display_options("option_1")
+            self.display_options("display")
 
         # Abre a janela de parâmetros, passando a função como callback
         DataWindow(master=self, callback=get_data_params)

@@ -13,12 +13,13 @@ from series import MetricModels
 import math
 
 class PlotWindow(ctk.CTkToplevel):
-    def __init__(self, series, predictions, residuals):
+    def __init__(self, series, predictions, residuals, losses):
         super().__init__()
         self.title("Visualização de Resultados")
         self.series = series
         self.predictions = predictions
         self.residuals = residuals
+        self.losses = losses
 
         # Menu lateral
         self.menu_frame = ctk.CTkFrame(self, width=200)
@@ -63,7 +64,7 @@ class PlotWindow(ctk.CTkToplevel):
         self.initial_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def open_new_graph_modal(self):
-        CreateGraphModal(self, self.series_list, self.predictions_list, self.residuals_list, self.add_graph)
+        CreateGraphModal(self, self.series, self.predictions, self.residuals, self.add_graph)
 
     def open_delete_graphs_modal(self):
         if not self.graphs:

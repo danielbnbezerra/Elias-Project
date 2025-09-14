@@ -2,12 +2,10 @@ from series import *
 from plotresults import *
 from lhcmodel import *
 import customtkinter as ctk
-import torch
-import numpy as np
-import pandas as pd
 from darts.models import NBEATSModel
 from darts.models import NHiTSModel
 from pytorch_lightning.callbacks import Callback
+import torch.optim as optim
 
 class LossTracker(Callback):
     def __init__(self):
@@ -20,7 +18,7 @@ class LossTracker(Callback):
             self.losses.append(loss.item())
 
 class ModelRunWindow(ctk.CTkToplevel):
-    def __init__(self, params, configs, series=None, predictions=None, losses=None):
+    def __init__(self, params, configs, series=None, predictions=None, losses=None, models=None, residuals=None):
         super().__init__()
         self.grab_set()
         self.grid_propagate(True)
@@ -28,21 +26,33 @@ class ModelRunWindow(ctk.CTkToplevel):
         self.rowconfigure(0, weight=1)  # Espaço antes dos botões
         self.rowconfigure(1, weight=1)
         self.series = series
-        self.params = params
         self.configurations = configs
+        self.params = params
         self.predictions = predictions if predictions is not None else {}
         self.losses = losses if losses is not None else {}
+        self.models = models if models is not None else {}
+        self.residuals = residuals if residuals is not None else {}
+
         self.model = None
         self.epochs = None
+        self.current_epoch = None
 
-        #Barra de Progresso do Treinamento
-        self.progress = ctk.CTkProgressBar(self)
-        self.progress.grid(row=0, column=0, pady=20)
+        self.progress_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.progress_frame.pack(pady=5)
+        # Label de progresso
+        self.label_progress = ctk.CTkLabel(self.progress_frame, text="Processando. 0% concluído.")
+        self.label_progress.grid(row=0, column=0, pady=(10, 0))
+
+        # Barra de progresso
+        self.progress = ctk.CTkProgressBar(self.progress_frame)
+        self.progress.grid(row=1, column=0, pady=20)
         self.progress.set(0)
 
     def update_progress(self,epoch):
         progress_value = (epoch + 1) / self.epochs
+        percent_progress = int(progress_value * 100)
         self.progress.set(progress_value)
+        self.label_progress.configure(text=f"Processando. {percent_progress}% concluído")
         self.update_idletasks()
 
     def next_model_run(self):
@@ -51,12 +61,24 @@ class ModelRunWindow(ctk.CTkToplevel):
             next_model_run = self.configurations[0]
             self.configurations.pop(0)
             if next_model_run["model"] == "N-BEATS":
-                ModelRunNBEATSWindow(params=next_model_run["parameters"], configs=self.configurations, series=self.series, preds=self.predictions, losses=self.losses)
+                ModelRunNBEATSWindow(params=next_model_run["parameters"],
+                                     configs=self.configurations,
+                                     series=self.series,
+                                     preds=self.predictions,
+                                     losses=self.losses,
+                                     models=self.models,
+                                     residuals=self.residuals)
             if next_model_run["model"] == "N-HiTS":
-                ModelRunNHiTSWindow(params=next_model_run["parameters"], configs=self.configurations, series=self.series, preds=self.predictions, losses=self.losses)
+                ModelRunNHiTSWindow(params=next_model_run["parameters"],
+                                    configs=self.configurations,
+                                    series=self.series,
+                                    preds=self.predictions,
+                                    losses=self.losses,
+                                    models=self.models,
+                                    residuals=self.residuals)
             self.destroy()
         else:
-            PlotWindow(self.series, self.predictions, self.losses)
+            PlotWindow(self.series, self.predictions, self.residuals, self.losses)
             self.after(100, self.destroy)
 
     def centralize_window(self):
@@ -71,64 +93,88 @@ class ModelRunWindow(ctk.CTkToplevel):
     def bring_fwd_window(self):
         self.attributes("-topmost", True)
 
+
 class ModelRunLHCWindow(ModelRunWindow):
-    def __init__(self,params, configs, series=None, preds=None, losses=None):
-        super().__init__(params, configs, series, preds, losses)
-        self.title("LHC - Executando Modelo")
+    def __init__(self, params, configs, series, preds=None, losses=None, models=None, residuals=None):
+        super().__init__(params, configs, series, preds, losses, models, residuals)
+        self.title("Treinamento LHCModel")
         self.centralize_window()
         self.bring_fwd_window()
 
-        self.device = set_device()
-        self.seed = self.params["random_state"]
-        if self.device == 'cuda':
-            # Se estiver usando CUDA:
-            torch.cuda.manual_seed(self.seed)
-            torch.cuda.manual_seed_all(self.seed)
-            torch.backends.cudnn.deterministic = True  # Para consistência
-            torch.backends.cudnn.benchmark = False
-            # torch.backends.cudnn.deterministic = False #Para desempenho
-            # torch.backends.cudnn.benchmark = True
-        else:
-            torch.manual_seed(self.seed)
-            np.random.seed(self.seed)
-            random.seed(self.seed)
-        self.model_creation()
-        self.after(100, self.model_train)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def model_creation(self):
-        self.epochs = self.params["n_epochs"]
-        self.params["n_epochs"] = 1
-        self.model = LHCModel(input_size=self.params["input_size"],
-                              hidden_size=self.params["hidden_size"],
-                              num_layers=self.params["num_layers"],
-                              output_size=self.params["output_size"]).to(self.device)
-                              # random_state=self.params["random_state"])
+        # Tensor sets baseados em GetSeries (prep treino e validação)
+        self.train_target = torch.tensor(self.series.train_target.values(), dtype=torch.float32).unsqueeze(0).to(self.device)
+        self.valid_target = torch.tensor(self.series.valid_target.values(), dtype=torch.float32).unsqueeze(0).to(self.device)
+        self.train_cov = torch.tensor(self.series.train_cov.values(), dtype=torch.float32).unsqueeze(0).to(self.device)
+        self.valid_cov = torch.tensor(self.series.valid_cov.values(), dtype=torch.float32).unsqueeze(0).to(self.device)
+        self.prate_covariates = torch.tensor(self.series.prate_covariates.values(), dtype=torch.float32).unsqueeze(0).to(self.device)
 
-    #A DEFINIR
+        self.pred_time_index = self.series.valid_target.time_index
 
-    # def model_train(self):
-    #     print(self.series.train,self.series.valid)
-    #     for epoch in range(self.epochs):
-    #         self.model.fit(series=self.series.train, val_series=self.series.valid)
-    #         self.update_progress(epoch)
-    #     self.predict_model()
-    #
-    # def predict_model(self):
-    #     prediction = self.model.predict(series=self.series.train, n=len(self.series.valid))
-    #     self.predictions["NBEATS"] = prediction
-    #     self.losses["NBEATS"] = self.loss_tracker.losses
-    #     self.next_model_run()
+        self.input_len = params['input_length']  # Para janelas de entrada
+        self.output_len = params['output_length']  # Quantos passos para treino (normalmente 1)
+
+        train_input = torch.cat([self.train_target, self.train_cov], dim=2)
+        self.inputs, self.targets = series_to_batches([train_input.cpu()], self.input_len, self.output_len)
+        self.inputs = self.inputs.to(self.device)
+        self.targets = self.targets.to(self.device)
+
+        self.epochs = self.params['n_epochs']
+
+        # Inicializa o modelo Lightning e callback
+        self.model = LHCModel(self.params, self.inputs.shape[2])
+        self.loss_tracker = LossTracker()
+
+        # Thread pra treino não travar GUI
+        threading.Thread(target=self.train_model, daemon=True).start()
+
+    def train_model(self):
+        dataset = TensorDataset(self.inputs, self.targets)
+        train_loader = DataLoader(dataset, batch_size=self.params['batch_size'], shuffle=True)
+
+        trainer = pl.Trainer(
+            max_epochs=self.epochs,
+            callbacks=[self.loss_tracker, ProgressBarCallback(self)],
+            enable_progress_bar=False,
+            logger=False,
+        )
+
+        trainer.fit(self.model, train_loader)
+
+        self.after(0, self.post_training)
+
+    def post_training(self):
+        n_predict = len(self.valid_target.squeeze(0))
+
+        preds_tensor = recursive_predict(
+            self.model,
+            self.train_target,
+            self.prate_covariates,
+            self.input_len,
+            n_predict,
+            self.device
+        )
+
+        preds_ts = predictions_to_timeseries(preds_tensor, self.pred_time_index)
+        residuals_ts = residuals_timeseries(self.valid_target, preds_ts)
+
+        self.predictions["LHC"] = preds_ts
+        self.residuals["LHC"] = residuals_ts
+        self.losses["LHC"] = self.loss_tracker.losses
+        self.models["LHC"] = self.model
+        self.next_model_run()
 
 class ModelRunNBEATSWindow(ModelRunWindow):
-    def __init__(self, params, configs, series=None, preds=None, losses=None):
-        super().__init__(params, configs, series, preds, losses)
+    def __init__(self, params, configs, series=None, preds=None, losses=None, models=None, residuals=None):
+        super().__init__(params, configs, series, preds, losses, models, residuals)
         self.title("N-BEATS - Executando Modelo")
         self.centralize_window()
         self.bring_fwd_window()
 
         self.loss_tracker = LossTracker()
         self.model_creation()
-        self.after(100, self.model_train)
+        self.after(100, self.start_model_train)
 
     def model_creation(self):
         self.epochs = self.params["n_epochs"]
@@ -136,28 +182,64 @@ class ModelRunNBEATSWindow(ModelRunWindow):
         self.params["pl_trainer_kwargs"] = {"callbacks": [self.loss_tracker]}
         self.model = NBEATSModel(**self.params)
 
-    def model_train(self):
-        for attr, value in self.series.__dict__.items():
-            print(f"{attr}: {value}")
-        for epoch in range(self.epochs):
+    def start_model_train(self):
+        """Inicializa o treino assíncrono"""
+        self.current_epoch = 0
+        self.progress.set(0)
+        self.label_progress.configure(text="Processando. 0% concluído")
+        self.run_model_epoch()
+
+    def run_model_epoch(self):
+        """Treina uma época sem travar a GUI"""
+        if self.current_epoch < self.epochs:
+            # Treina a época atual
             self.model.fit(series=self.series.train_target,
                            past_covariates=self.series.train_cov,
                            val_past_covariates=self.series.valid_cov,
                            val_series=self.series.valid_target)
-            self.update_progress(epoch)
-        if self.params['save_checkpoints'] == 'true':
+
+            # Atualiza barra e label
+            self.update_progress(self.current_epoch)
+            #Próxima época
+            self.current_epoch += 1
+            #Agenda a próxima época
+            self.after(1, self.run_model_epoch)
+        else:
+            self.label_progress.configure(text="Processando. 100% concluído")
+            self.after_training_done()
+
+    def after_training_done(self):
+        """Ações após treino finalizado"""
+        if self.params.get('save_checkpoints') == 'true':
             self.model = NBEATSModel.load_from_checkpoint(self.model.model_name)
         self.predict_model()
 
-    def predict_model(self):
-        prediction = self.model.predict(series=self.series.train_target, past_covariates=self.series.prate_covariates, n=len(self.series.valid_target))
-        self.predictions["NBEATS"] = prediction
+    def compute_residuals(self):
+        self.residuals["NBEATS"] = self.model.residuals(self.series.valid_target, past_covariates=self.series.valid_cov, verbose=True, retrain=False)
+        self.after(0, self.residuals_done)
+
+    def residuals_done(self):
+        self.label_progress.configure(text="Concluído!")
         self.losses["NBEATS"] = self.loss_tracker.losses
-        self.next_model_run()
+        self.models["NBEATS"] = self.model
+        print(self.predictions["NBEATS"])
+        print(self.models["NBEATS"])
+        print(self.losses["NBEATS"])
+        print(self.residuals["NBEATS"])
+        self.after(1000, self.next_model_run)
+
+    def start_residuals(self):
+        threading.Thread(target=self.compute_residuals, daemon=True).start()
+
+    def predict_model(self):
+        predictions = self.model.predict(series=self.series.train_target, past_covariates=self.series.prate_covariates, n=len(self.series.valid_target))
+        self.predictions["NBEATS"] = predictions
+        self.label_progress.configure(text="Processando os resíduos. Aguarde.")
+        self.start_residuals()
 
 class ModelRunNHiTSWindow(ModelRunWindow):
-    def __init__(self, params, configs, series=None, preds=None, losses=None):
-        super().__init__(params, configs, series, preds, losses)
+    def __init__(self, params, configs, series=None, preds=None, losses=None, models=None, residuals=None):
+        super().__init__(params, configs, series, preds, losses, models, residuals)
         self.title("N-HiTS - Executando Modelo")
         self.centralize_window()
         self.bring_fwd_window()
@@ -172,20 +254,57 @@ class ModelRunNHiTSWindow(ModelRunWindow):
         self.params["pl_trainer_kwargs"] = {"callbacks": [self.loss_tracker]}
         self.model = NHiTSModel(**self.params)
 
-    def model_train(self):
+    def start_model_train(self):
+        self.current_epoch = 0
+        self.progress.set(0)
+        self.label_progress.configure(text="Processando. 0% concluído")
+        self.run_model_epoch()
 
-        for epoch in range(self.epochs):
+    def run_model_epoch(self):
+        if self.current_epoch < self.epochs:
+            # Treina a época atual
             self.model.fit(series=self.series.train_target,
                            past_covariates=self.series.train_cov,
                            val_past_covariates=self.series.valid_cov,
                            val_series=self.series.valid_target)
-            self.update_progress(epoch)
-        if self.params['save_checkpoints'] == 'true':
+
+            # Atualiza barra e label
+            self.update_progress(self.current_epoch)
+            # Próxima época
+            self.current_epoch += 1
+            # Agenda a próxima época
+            self.after(1, self.run_model_epoch)
+        else:
+            self.label_progress.configure(text="Processando. 100% concluído")
+            self.after_training_done()
+
+    def after_training_done(self):
+        """Ações após treino finalizado"""
+        if self.params.get('save_checkpoints') == 'true':
             self.model = NHiTSModel.load_from_checkpoint(self.model.model_name)
         self.predict_model()
 
-    def predict_model(self):
-        prediction = self.model.predict(series=self.series.train_target, past_covariates=self.series.prate_covariates, n=len(self.series.valid_target))
-        self.predictions["NHiTS"] = prediction
+    def compute_residuals(self):
+        self.residuals["NHiTS"] = self.model.residuals(self.series.valid_target, past_covariates=self.series.valid_cov,
+                                                        verbose=True, retrain=False)
+        self.after(0, self.residuals_done)
+
+    def residuals_done(self):
+        self.label_progress.configure(text="Concluído!")
         self.losses["NHiTS"] = self.loss_tracker.losses
-        self.next_model_run()
+        self.models["NHiTS"] = self.model
+        print(self.predictions["NHiTS"])
+        print(self.models["NHiTS"])
+        print(self.losses["NHiTS"])
+        print(self.residuals["NHiTS"])
+        self.after(1000, self.next_model_run)
+
+    def start_residuals(self):
+        threading.Thread(target=self.compute_residuals, daemon=True).start()
+
+    def predict_model(self):
+        predictions = self.model.predict(series=self.series.train_target, past_covariates=self.series.prate_covariates,
+                                         n=len(self.series.valid_target))
+        self.predictions["NHiTS"] = predictions
+        self.label_progress.configure(text="Processando os resíduos. Aguarde.")
+        self.start_residuals()
