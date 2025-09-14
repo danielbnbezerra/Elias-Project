@@ -1,3 +1,5 @@
+import shutil
+
 from tkinter import messagebox, filedialog
 
 from models import *
@@ -60,11 +62,21 @@ class Tooltip:
             self.tooltip_window.geometry(f"+{x}+{y}")
 
 class ConfirmExitWindow(ctk.CTkToplevel):
+    @staticmethod
+    def cleanup_darts_logs():
+        logs_path = "darts_logs"
+        if os.path.exists(logs_path):
+            try:
+                shutil.rmtree(logs_path)
+            except Exception as e:
+                print(f"Erro ao remover darts_logs: {e}")
+
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Sair do Aplicativo?")
         self.centralize_window()
         self.grab_set()  # Make this window modal (prevents interaction with the main window)
+        self.parent = parent
 
         label = ctk.CTkLabel(self, text="Tem certeza que deseja sair?")
         label.pack(pady=20)
@@ -72,13 +84,15 @@ class ConfirmExitWindow(ctk.CTkToplevel):
         button_frame = ctk.CTkFrame(self, fg_color="transparent")
         button_frame.pack(pady=10)
 
-        yes_button = ctk.CTkButton(button_frame, text="Sim", command=parent.quit)
+        yes_button = ctk.CTkButton(button_frame, text="Sim", command=self.on_closing)
         yes_button.grid(row=0, column=0, padx=10)
-        # yes_button.pack(side="left", padx=10)
 
         no_button = ctk.CTkButton(button_frame, text="Não", command=self.destroy)
         no_button.grid(row=0, column=1, padx=10)
-        # no_button.pack(side="right", padx=10)
+
+    def on_closing(self):
+        self.cleanup_darts_logs()
+        self.parent.quit()  # fecha a janela
 
     def centralize_window(self, width=320, height=150):
         window_width = width

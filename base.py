@@ -7,16 +7,6 @@ from series import *
 
 
 class Application(ctk.CTk):
-    @staticmethod
-    def cleanup_darts_logs():
-        logs_path = "darts_logs"
-        if os.path.exists(logs_path):
-            try:
-                shutil.rmtree(logs_path)
-                print("Pasta darts_logs removida com sucesso.")
-            except Exception as e:
-                print(f"Erro ao remover darts_logs: {e}")
-
     def __init__(self):
         super().__init__()
         self.title("Projeto Elias")
