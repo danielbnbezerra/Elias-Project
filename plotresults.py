@@ -1,15 +1,15 @@
+import inspect
 import math
 import os
-import inspect
-
 import tkinter as tk
+import matplotlib.dates as mdates
 import customtkinter as ctk
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+from darts.utils.statistics import plot_residuals_analysis
 from torch import save as torch_save
 
 
@@ -17,29 +17,34 @@ class PlotWindow(ctk.CTkToplevel):
     def __init__(self, series, predictions, residuals, losses, models):
         super().__init__()
         self.title("Visualização de Resultados")
-        self.series = series
+        self.grab_set()
+
+        self.series = {"Precipitação":series.prate,
+                       "Precipitação Acumulada 3 dias": series.prate_t_minus_3,
+                       "Precipitação Acumulada 5 dias": series.prate_t_minus_5,
+                       "Vazão":series.flow}
+
         self.predictions = predictions
         self.residuals = residuals
         self.losses = losses
         self.models = models
 
         # Menu lateral
-        self.menu_frame = ctk.CTkFrame(self, width=200)
-        self.menu_frame.pack(side="left", fill="y")
+        self.menu_frame = ctk.CTkFrame(self, width=200, fg_color='#DDDDDD')
+        self.menu_frame.pack(side="left", fill="both")
 
         new_graph_button = ctk.CTkButton(self.menu_frame, text="Novo Gráfico", command=self.open_new_graph_modal)
         new_graph_button.pack(pady=(20,10), padx=20)
 
-        delete_graph_button = ctk.CTkButton(self.menu_frame, text="Excluir Gráficos",
-                                         command=self.open_delete_graphs_modal)
+        delete_graph_button = ctk.CTkButton(self.menu_frame, text="Excluir Gráficos", command=self.open_delete_graphs_modal)
         delete_graph_button.pack(pady=(0, 20), padx=20)
 
         clear_all_button = ctk.CTkButton(self.menu_frame, text="Limpar todos os gráficos", command=self.clear_all_graphs)
         clear_all_button.pack(pady=(0, 20), padx=20)
 
         self.graphs = []  # Cada item: dict {frame, canvas, name}
-        self.show_initial_graph_area()
 
+        self.show_initial_graph_area()
         self.centralize_window()
 
     def create_submenu(self):
@@ -56,7 +61,7 @@ class PlotWindow(ctk.CTkToplevel):
     def show_initial_graph_area(self):
         if hasattr(self, 'graph_area_frame'):
             self.graph_area_frame.destroy()
-        self.graph_area_frame = ctk.CTkFrame(self)
+        self.graph_area_frame = ctk.CTkFrame(self, fg_color='#EBEBEB')
         self.graph_area_frame.pack(side="right", fill="both", expand=True)
         self.initial_label = ctk.CTkLabel(
             self.graph_area_frame,
@@ -66,14 +71,20 @@ class PlotWindow(ctk.CTkToplevel):
         self.initial_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def open_new_graph_modal(self):
-        CreateGraphModal(self, self.series, self.predictions, self.residuals, self.add_graph)
+        CreateGraphModal(
+            self,
+            self.series,
+            self.predictions,
+            self.losses,
+            self.residuals,
+            self.add_graph
+        )
 
     def open_delete_graphs_modal(self):
         if not self.graphs:
             return
         names = [g["name"] for g in self.graphs]
         DeleteGraphsModal(self, names, self.delete_graphs)
-
 
     def add_graph(self, name, selected_data_indices):
         if hasattr(self, "initial_label") and self.initial_label.winfo_exists():
@@ -83,30 +94,74 @@ class PlotWindow(ctk.CTkToplevel):
             self.graphs = []
 
         frame = ctk.CTkFrame(self.graph_area_frame, corner_radius=10, fg_color="#222222")
+        fig = plt.figure(figsize=(4, 3))
+        ax = fig.add_subplot(111)
 
-        if selected_data_indices.get("Resíduo") is not None and selected_data_indices["Resíduo"] != -1:
-            idx = selected_data_indices["Resíduo"]
-            res_obj = self.residuals_list[idx]  # Aqui, res_obj deve ser o residuals do DARTS
+        # Séries
+        if selected_data_indices.get("Séries"):
+            for name, series_obj in selected_data_indices["Séries"].items():
+                ax.plot(series_obj.time_index, series_obj.values(), label=name)
 
-            # Gera o gráfico da análise de resíduos usando a função do DARTS
-            plt.close('all')  # Fecha figuras abertas anteriormente para evitar acúmulo
-            plot_residuals_analysis(res_obj["data"])
-            fig = plt.gcf()
-            fig.set_size_inches(4, 3)  # Ajusta para 4x3 polegadas como nos gráficos das séries
-            # fig.subplots_adjust(left=0, right=1, top=1, bottom=0)  # Remove margens para melhor preencher
-            fig.suptitle(name, fontsize=14)  # título geral da figura
-            # plot_residuals_analysis já cria a figura matplotlib e retorna ela
-
-        else:
-            fig = Figure(figsize=(4, 3), dpi=100)
-            ax = fig.add_subplot(111)
-            for idx in selected_data_indices["Séries"]:
-                ax.plot(self.series_list[idx], label=f"Série {idx + 1}")
-            for idx in selected_data_indices["Previsões"]:
-                ax.plot(self.predictions_list[idx], label=f"Previsão {idx + 1}", linestyle='--')
-            ax.legend()
+            ax.set_xticks(
+                pd.date_range(start=self.series["flow"].start_time(), end=self.series["flow"].end_time(), freq='YS'))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+            ax.tick_params(axis='x', labelsize=10)
+            ax.tick_params(axis='y', labelsize=15)
+            ax.set_xlabel('Tempo', fontsize=15)
+            ax.legend(fontsize=18)
             ax.grid(True)
             ax.set_title(name)
+
+        # Previsões (sempre plota flow para comparação)
+        elif selected_data_indices.get("Previsões"):
+            # Plota série flow inteira com tempo original para comparação
+            ax.plot(self.series["flow"].time_index, self.series["flow"].values(), color="black", label="Série Observada")
+
+            # Para cada previsão, usa seu time_index para alinhamento correto no tempo
+            for name, pred_series in selected_data_indices["Previsões"].items():
+                ax.plot(pred_series.time_index, pred_series.values(), label=f"Previsão {name}")
+
+            ax.set_xticks(
+                pd.date_range(start=self.series["flow"].start_time(), end=self.series["flow"].end_time(), freq='YS'))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+            ax.tick_params(axis='x', labelsize=10)
+            ax.tick_params(axis='y', labelsize=15)
+            ax.set_xlabel('Tempo', fontsize=15)
+            ax.set_ylabel('Vazão', fontsize=15)
+            ax.legend(fontsize=18)
+            ax.grid(True)
+            ax.set_title(name)
+
+        # Curvas de Aprendizado
+        elif selected_data_indices.get("Curvas de Aprendizado"):
+            for name, loss_values in selected_data_indices["Curvas de Aprendizado"].items():
+                ax.plot(range(len(loss_values)), loss_values, label=f"Curva de Aprendizado {name}")
+            ax.set_xlabel("Epochs")
+            ax.set_ylabel("Perdas")
+            ax.tick_params(axis='x', labelsize=10)
+            ax.tick_params(axis='y', labelsize=15)
+            ax.legend(fontsize=18)
+            ax.grid(True)
+            ax.set_title(name)
+
+        # Resíduos (único selecionado)
+        elif selected_data_indices.get("Resíduos"):
+            for name, res_obj in selected_data_indices["Resíduos"].items():
+                plt.close('all')
+                plot_residuals_analysis(res_obj)
+                fig = plt.gcf()
+                fig.set_size_inches(4, 3)
+                fig.suptitle(name, fontsize=14)
+                canvas = FigureCanvasTkAgg(fig, master=frame)
+                canvas.draw()
+                canvas.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
+                self.graphs.append({"frame": frame, "canvas": canvas, "name": name})
+                self.update_grid_layout()
+                return
+
+        if not ax.has_data():
+            frame.destroy()
+            return
 
         canvas = FigureCanvasTkAgg(fig, master=frame)
         canvas.draw()
@@ -252,38 +307,52 @@ class PlotWindow(ctk.CTkToplevel):
         return filename
 
 class CreateGraphModal(ctk.CTkToplevel):
-    def __init__(self, parent, series_list, predictions_list, residuals_list, callback):
+    def __init__(self, parent, series, predictions, losses, residuals, callback):
         super().__init__(parent)
         self.title("Novo Gráfico")
-        self.geometry("450x560")
+        self.grab_set()
+        self.centralize_window()
+
         self.callback = callback
 
-        self.series_list = series_list
-        self.predictions_list = predictions_list
-        self.residuals_list = residuals_list  # Cada item: {"name": ..., "data": np.array}
+        self.series_names = list(series.keys())
+        self.series = series
+        self.predictions = predictions
+        self.losses = losses
+        self.residuals = residuals
 
-        ctk.CTkLabel(self, text="Nome do gráfico:", font=ctk.CTkFont(size=14)).pack(pady=(10,0))
+        ctk.CTkLabel(self, text="Nome do gráfico:", font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(10,0))
         self.name_entry = ctk.CTkEntry(self)
         self.name_entry.pack(pady=(0,15), padx=20, fill="x")
         self.name_entry.focus()
 
         ctk.CTkLabel(self, text="Tipo de gráfico:", font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(2,5))
-        self.graph_type = ctk.StringVar(value="Série/Previsão")
-        self.rb_sp = ctk.CTkRadioButton(self, text="Série/Previsão", variable=self.graph_type, value="Série/Previsão", command=self.update_options)
-        self.rb_sp.pack(anchor="w", padx=30)
-        self.rb_res = ctk.CTkRadioButton(self, text="Resíduo (DARTS)", variable=self.graph_type, value="Resíduo", command=self.update_options)
-        self.rb_res.pack(anchor="w", padx=30)
+        self.graph_type = ctk.StringVar(value="Séries")
 
-        self.options_frame = ctk.CTkFrame(self)
+        self.options_graph_frame = ctk.CTkFrame(self, fg_color='transparent')
+        self.options_graph_frame.pack(pady=5)
+        self.rb_series = ctk.CTkRadioButton(self.options_graph_frame, text="Séries", variable=self.graph_type, value="Séries", command=self.update_options)
+        self.rb_series.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.rb_predictions = ctk.CTkRadioButton(self.options_graph_frame, text="Previsões", variable=self.graph_type, value="Previsões", command=self.update_options)
+        self.rb_predictions.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.rb_losses = ctk.CTkRadioButton(self.options_graph_frame, text="Curvas de Aprendizado", variable=self.graph_type, value="Curvas de Aprendizado", command=self.update_options)
+        self.rb_losses.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.rb_res = ctk.CTkRadioButton(self.options_graph_frame, text="Resíduos", variable=self.graph_type,
+                                         value="Resíduos", command=self.update_options)
+        self.rb_res.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+
+        self.options_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
         self.options_frame.pack(fill="both", expand=True, pady=(8,0), padx=5)
 
-        self.sp_checks = {"Séries": [], "Previsões": []}
-        self.res_check = []
-        self.res_var = ctk.IntVar(value=-1)
+        self.series_checks = []
+        self.prediction_checks = []
+        self.losses_checks = []
+        self.residual_checks = []
+        self.residual_var = ctk.IntVar(value=-1)
 
         self.update_options()
 
-        btn_frame = ctk.CTkFrame(self)
+        btn_frame = ctk.CTkFrame(self, fg_color='transparent')
         btn_frame.pack(pady=20)
         btn_cancel = ctk.CTkButton(btn_frame, text="Cancelar", command=self.destroy)
         btn_cancel.grid(row=0, column=0, padx=10)
@@ -293,58 +362,110 @@ class CreateGraphModal(ctk.CTkToplevel):
     def update_options(self):
         for widget in self.options_frame.winfo_children():
             widget.destroy()
-        self.sp_checks = {"Séries": [], "Previsões": []}
-        self.res_check = []
 
-        if self.graph_type.get() == "Série/Previsão":
-            lbl_series = ctk.CTkLabel(self.options_frame, text="Selecione Séries:", font=ctk.CTkFont(size=13, weight="bold"))
-            lbl_series.pack(anchor="w", pady=(10, 0), padx=10)
-            for i in range(len(self.series_list)):
-                var = ctk.BooleanVar(value=False)
-                cb = ctk.CTkCheckBox(self.options_frame, text=f"Série {i+1}", variable=var)
-                cb.pack(anchor="w", padx=20)
-                self.sp_checks["Séries"].append(var)
+        self.series_checks = []
+        self.prediction_checks = []
+        self.losses_checks = []
+        self.residual_checks = []
 
-            lbl_preds = ctk.CTkLabel(self.options_frame, text="Selecione Previsões:", font=ctk.CTkFont(size=13, weight="bold"))
-            lbl_preds.pack(anchor="w", pady=(15, 0), padx=10)
-            for i in range(len(self.predictions_list)):
+        if self.graph_type.get() == "Séries":
+            label_series = ctk.CTkLabel(self.options_frame, text="Selecione Séries:", font=ctk.CTkFont(size=13, weight="bold"))
+            label_series.pack(anchor="w", pady=(10, 0), padx=10)
+
+            for name in self.series.keys():
                 var = ctk.BooleanVar(value=False)
-                cb = ctk.CTkCheckBox(self.options_frame, text=f"Previsão {i+1}", variable=var)
+                cb = ctk.CTkCheckBox(self.options_frame, text=name, variable=var)
                 cb.pack(anchor="w", padx=20)
-                self.sp_checks["Previsões"].append(var)
-        else:
-            lbl_res = ctk.CTkLabel(self.options_frame, text="Selecione o resíduo (DARTS):", font=ctk.CTkFont(size=13, weight="bold"))
-            lbl_res.pack(anchor="w", pady=(15, 5), padx=10)
-            for i, res in enumerate(self.residuals_list):
-                rb = ctk.CTkRadioButton(self.options_frame, text=res["name"], variable=self.res_var, value=i)
+                self.series_checks.append(var)
+
+        elif self.graph_type.get() == "Previsões":
+            label_preds = ctk.CTkLabel(self.options_frame, text="Selecione Previsões:", font=ctk.CTkFont(size=13, weight="bold"))
+            label_preds.pack(anchor="w", pady=(10, 0), padx=10)
+
+            for name in self.predictions.keys():
+                var = ctk.BooleanVar(value=False)
+                cb = ctk.CTkCheckBox(self.options_frame, text=name, variable=var)
+                cb.pack(anchor="w", padx=20)
+                self.prediction_checks.append(var)
+
+        elif self.graph_type.get() == "Curvas de Aprendizado":
+            label_losses = ctk.CTkLabel(self.options_frame, text="Selecione Curvas de Aprendizado:", font=ctk.CTkFont(size=13, weight="bold"))
+            label_losses.pack(anchor="w", pady=(10, 0), padx=10)
+
+            for name in self.losses.keys():
+                var = ctk.BooleanVar(value=False)
+                cb = ctk.CTkCheckBox(self.options_frame, text=name, variable=var)
+                cb.pack(anchor="w", padx=20)
+                self.losses_checks.append(var)
+
+        else:  # Resíduos
+            label_res = ctk.CTkLabel(self.options_frame, text="Selecione o resíduo (DARTS):", font=ctk.CTkFont(size=13, weight="bold"))
+            label_res.pack(anchor="w", pady=(15, 5), padx=10)
+
+            for i, (name, _) in enumerate(self.residuals.items()):
+                rb = ctk.CTkRadioButton(self.options_frame, text=name, variable=self.residual_var, value=i)
                 rb.pack(anchor="w", padx=20)
-                self.res_check.append(rb)
+                self.residual_checks.append(rb)
 
     def confirm(self):
         name = self.name_entry.get().strip()
         if not name:
             return
-        if self.graph_type.get() == "Série/Previsão":
-            selected_data = {
-                "Séries": [i for i, v in enumerate(self.sp_checks["Séries"]) if v.get()],
-                "Previsões": [i for i, v in enumerate(self.sp_checks["Previsões"]) if v.get()],
-                "Resíduo": None
-            }
-            if selected_data["Séries"] or selected_data["Previsões"]:
-                self.callback(name, selected_data)
-                self.destroy()
-        else:
-            idx = self.res_var.get()
-            if idx != -1:
+
+        if self.graph_type.get() == "Séries":
+            selected_names = [name for i, name in enumerate(self.series.keys()) if self.series_checks[i].get()]
+            if selected_names:
+                selected_series = {n: self.series[n] for n in selected_names}
                 selected_data = {
-                    "Séries": [],
-                    "Previsões": [],
-                    "Resíduo": idx
+                    "Séries": selected_series,
+                    "Previsões": {},
+                    "Curvas de Aprendizado": {},
+                    "Resíduos": None
                 }
                 self.callback(name, selected_data)
                 self.destroy()
 
-    def centralize_window(self, width=480, height=380):
+        elif self.graph_type.get() == "Previsões":
+            selected_names = [name for i, name in enumerate(self.predictions.keys()) if
+                              self.prediction_checks[i].get()]
+            if selected_names:
+                selected_predictions = {n: self.predictions[n] for n in selected_names}
+                selected_data = {
+                    "Séries": {},
+                    "Previsões": selected_predictions,
+                    "Curvas de Aprendizado": {},
+                    "Resíduos": None
+                }
+                self.callback(name, selected_data)
+                self.destroy()
+
+        elif self.graph_type.get() == "Curvas de Aprendizado":
+            selected_names = [name for i, name in enumerate(self.losses.keys()) if self.losses_checks[i].get()]
+            if selected_names:
+                selected_losses = {n: self.losses[n] for n in selected_names}
+                selected_data = {
+                    "Séries": {},
+                    "Previsões": {},
+                    "Curvas de Aprendizado": selected_losses,
+                    "Resíduos": None
+                }
+                self.callback(name, selected_data)
+                self.destroy()
+
+        else:  # Resíduos
+            idx = self.residual_var.get()
+            if idx != -1:
+                res_key = list(self.residuals.keys())[idx]
+                selected_data = {
+                    "Séries": {},
+                    "Previsões": {},
+                    "Curvas de Aprendizado": {},
+                    "Resíduos": {res_key: self.residuals[res_key]}
+                }
+                self.callback(name, selected_data)
+                self.destroy()
+
+    def centralize_window(self, width=330, height=560):
         window_width = width
         window_height = height
         screen_width = self.winfo_screenwidth()
@@ -353,12 +474,13 @@ class CreateGraphModal(ctk.CTkToplevel):
         y = round((screen_height - window_height) // 2, -1)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
-
 class DeleteGraphsModal(ctk.CTkToplevel):
     def __init__(self, parent, graph_names, callback):
         super().__init__(parent)
         self.title("Excluir Gráficos")
-        self.geometry("300x400")
+        self.grab_set()
+        self.centralize_window()
+
         self.callback = callback
         ctk.CTkLabel(self, text="Selecione os gráficos para excluir", font=ctk.CTkFont(size=14, weight="bold")).pack(pady=10)
         self.check_vars = []
@@ -383,7 +505,7 @@ class DeleteGraphsModal(ctk.CTkToplevel):
             self.callback(to_delete)
             self.destroy()
 
-    def centralize_window(self, width=480, height=380):
+    def centralize_window(self, width=320, height=400):
         window_width = width
         window_height = height
         screen_width = self.winfo_screenwidth()
