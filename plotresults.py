@@ -1,16 +1,23 @@
 import inspect
 import math
 import os
+import tempfile
+
 import tkinter as tk
 import matplotlib.dates as mdates
 import customtkinter as ctk
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
-from matplotlib.backends.backend_pdf import PdfPages
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from darts.utils.statistics import plot_residuals_analysis
+from darts.utils.statistics import plot_residuals_analysis, plot_acf, plot_pacf
 from torch import save as torch_save
+
+from metrics import *
 
 
 class PlotWindow(ctk.CTkToplevel):
@@ -18,6 +25,8 @@ class PlotWindow(ctk.CTkToplevel):
         super().__init__()
         self.title("Visualização de Resultados")
         self.grab_set()
+        self.create_submenu()
+        self.timeseries = series
 
         self.series = {"Precipitação":series.prate,
                        "Precipitação Acumulada 3 dias": series.prate_t_minus_3,
@@ -55,7 +64,7 @@ class PlotWindow(ctk.CTkToplevel):
         #Report Menu
         report_menu = tk.Menu(export_menu, tearoff=0)
         export_menu.add_cascade(label="Resultados", menu=report_menu)
-        report_menu.add_command(label="Gerar Relatório", command=self.export_report)
+        report_menu.add_command(label="Gerar Relatório", command=self.generate_report_pdf)
         report_menu.add_command(label="Exportar Modelos", command=self.export_models)
 
     def show_initial_graph_area(self):
@@ -63,6 +72,7 @@ class PlotWindow(ctk.CTkToplevel):
             self.graph_area_frame.destroy()
         self.graph_area_frame = ctk.CTkFrame(self, fg_color='#EBEBEB')
         self.graph_area_frame.pack(side="right", fill="both", expand=True)
+
         self.initial_label = ctk.CTkLabel(
             self.graph_area_frame,
             text="Clique em 'Novo Gráfico' para adicionar gráficos",
@@ -86,15 +96,20 @@ class PlotWindow(ctk.CTkToplevel):
         names = [g["name"] for g in self.graphs]
         DeleteGraphsModal(self, names, self.delete_graphs)
 
-    def add_graph(self, name, selected_data_indices):
+    def add_graph(self, name_entry, selected_data_indices):
         if hasattr(self, "initial_label") and self.initial_label.winfo_exists():
             self.graph_area_frame.destroy()
-            self.graph_area_frame = ctk.CTkFrame(self)
+            self.graph_area_frame = ctk.CTkFrame(self, fg_color='#EBEBEB')
             self.graph_area_frame.pack(side="right", fill="both", expand=True)
+
+            self.scrollable_graph_frame = ctk.CTkScrollableFrame(self.graph_area_frame, fg_color='#EBEBEB')
+            self.scrollable_graph_frame.pack(fill="both", expand=True)
+
             self.graphs = []
 
-        frame = ctk.CTkFrame(self.graph_area_frame, corner_radius=10, fg_color="#222222")
-        fig = plt.figure(figsize=(4, 3))
+        frame = ctk.CTkFrame(self.scrollable_graph_frame, corner_radius=10)
+
+        fig = plt.figure(figsize=(20,8))
         ax = fig.add_subplot(111)
 
         # Séries
@@ -103,46 +118,46 @@ class PlotWindow(ctk.CTkToplevel):
                 ax.plot(series_obj.time_index, series_obj.values(), label=name)
 
             ax.set_xticks(
-                pd.date_range(start=self.series["flow"].start_time(), end=self.series["flow"].end_time(), freq='YS'))
+                pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='MS'))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
             ax.tick_params(axis='x', labelsize=10)
-            ax.tick_params(axis='y', labelsize=15)
+            ax.tick_params(axis='y', labelsize=10)
             ax.set_xlabel('Tempo', fontsize=15)
-            ax.legend(fontsize=18)
+            ax.legend(fontsize=10, loc='best')
             ax.grid(True)
-            ax.set_title(name)
+            ax.set_title(name_entry)
 
         # Previsões (sempre plota flow para comparação)
         elif selected_data_indices.get("Previsões"):
             # Plota série flow inteira com tempo original para comparação
-            ax.plot(self.series["flow"].time_index, self.series["flow"].values(), color="black", label="Série Observada")
+            ax.plot(self.series["Vazão"].time_index, self.series["Vazão"].values(), label="Série Observada")
 
             # Para cada previsão, usa seu time_index para alinhamento correto no tempo
             for name, pred_series in selected_data_indices["Previsões"].items():
-                ax.plot(pred_series.time_index, pred_series.values(), label=f"Previsão {name}")
+                ax.plot(pred_series.time_index, pred_series.values(), label=f"{name} - Previsão")
 
             ax.set_xticks(
-                pd.date_range(start=self.series["flow"].start_time(), end=self.series["flow"].end_time(), freq='YS'))
+                pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='YS'))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
             ax.tick_params(axis='x', labelsize=10)
-            ax.tick_params(axis='y', labelsize=15)
+            ax.tick_params(axis='y', labelsize=10)
             ax.set_xlabel('Tempo', fontsize=15)
             ax.set_ylabel('Vazão', fontsize=15)
-            ax.legend(fontsize=18)
+            ax.legend(fontsize=10, loc='best')
             ax.grid(True)
-            ax.set_title(name)
+            ax.set_title(name_entry)
 
         # Curvas de Aprendizado
         elif selected_data_indices.get("Curvas de Aprendizado"):
             for name, loss_values in selected_data_indices["Curvas de Aprendizado"].items():
-                ax.plot(range(len(loss_values)), loss_values, label=f"Curva de Aprendizado {name}")
-            ax.set_xlabel("Epochs")
-            ax.set_ylabel("Perdas")
+                ax.plot(range(len(loss_values)), loss_values, label=f"{name} - Curva de Aprendizado")
+            ax.set_xlabel("Epochs", fontsize=15)
+            ax.set_ylabel("Perdas", fontsize=15)
             ax.tick_params(axis='x', labelsize=10)
-            ax.tick_params(axis='y', labelsize=15)
-            ax.legend(fontsize=18)
+            ax.tick_params(axis='y', labelsize=10)
+            ax.legend(fontsize=10, loc='best')
             ax.grid(True)
-            ax.set_title(name)
+            ax.set_title(name_entry)
 
         # Resíduos (único selecionado)
         elif selected_data_indices.get("Resíduos"):
@@ -150,12 +165,12 @@ class PlotWindow(ctk.CTkToplevel):
                 plt.close('all')
                 plot_residuals_analysis(res_obj)
                 fig = plt.gcf()
-                fig.set_size_inches(4, 3)
-                fig.suptitle(name, fontsize=14)
+                fig.set_size_inches(8, 6)
+                fig.suptitle(f"{name} - Resíduos", fontsize=14)
                 canvas = FigureCanvasTkAgg(fig, master=frame)
                 canvas.draw()
-                canvas.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
-                self.graphs.append({"frame": frame, "canvas": canvas, "name": name})
+                canvas.get_tk_widget().pack(fill="both", expand=True, padx=(0,5), pady=(0,5))
+                self.graphs.append({"frame": frame, "canvas": canvas, "name": name_entry})
                 self.update_grid_layout()
                 return
 
@@ -163,11 +178,13 @@ class PlotWindow(ctk.CTkToplevel):
             frame.destroy()
             return
 
+        fig.tight_layout()
+
         canvas = FigureCanvasTkAgg(fig, master=frame)
         canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
+        canvas.get_tk_widget().pack(fill="both", expand=True, padx=(0,5), pady=(0,5))
 
-        self.graphs.append({"frame": frame, "canvas": canvas, "name": name})
+        self.graphs.append({"frame": frame, "canvas": canvas, "name": name_entry})
         self.update_grid_layout()
 
     def delete_graphs(self, names_to_delete):
@@ -186,16 +203,19 @@ class PlotWindow(ctk.CTkToplevel):
         self.show_initial_graph_area()
 
     def update_grid_layout(self):
+        if not hasattr(self, 'scrollable_graph_frame'):
+            return
         total = len(self.graphs)
         if total == 0:
             return
-        cols = math.ceil(math.sqrt(total))
+
+        cols=1
         rows = math.ceil(total / cols)
 
         for r in range(rows):
-            self.graph_area_frame.grid_rowconfigure(r, weight=1)
+            self.scrollable_graph_frame.grid_rowconfigure(r, weight=1)
         for c in range(cols):
-            self.graph_area_frame.grid_columnconfigure(c, weight=1)
+            self.scrollable_graph_frame.grid_columnconfigure(c, weight=1)
 
         for graph in self.graphs:
             graph["frame"].grid_forget()
@@ -205,14 +225,10 @@ class PlotWindow(ctk.CTkToplevel):
             c = idx % cols
             graph["frame"].grid(row=r, column=c, sticky="nsew", padx=5, pady=5)
 
-    def centralize_window(self, width=1200,height=700):
-        window_width = width
-        window_height = height
+    def centralize_window(self):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
-        x = round((screen_width - window_width) // 2, -1)
-        y = round((screen_height - window_height) // 2, -1)
-        self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
+        self.geometry(f"{screen_width}x{screen_height}+{0}+{0}")
 
     def export_models(self):
         for name, model in self.models.items():
@@ -239,66 +255,114 @@ class PlotWindow(ctk.CTkToplevel):
                     f.write(py_code)
                     model.save_model(f"{path}_weights.pth.tar")
 
-    def export_report(self):
+    def generate_report_pdf(self, name_file=f"Relatório Completo"):
+        filename = self.get_unique_filename(name_file,"pdf")
+        c = canvas.Canvas(filename, pagesize=letter)
+        width, height = letter
+        margin = 50
+        line_height = 14
 
-        # Geração de nome único para o PDF
-        pdf_filename = self.get_unique_filename("Relatório", "pdf")
+        y_position = height - margin
 
-        # PDF: salvar previsões individualmente e as curvas de aprendizado juntas
-        with PdfPages(pdf_filename) as pdf:
-            plot_configs = []
+        for model_name, predicted_ts in self.predictions.items():
+            actual_ts = self.timeseries.valid_target
 
-            # Gráficos de previsão
-            if self.selections.get("lhc_pred", False):
-                plot_configs.append(("LHC - Previsão", self.predictions.get("LHC"), "blue"))
-            if self.selections.get("nbeats_pred", False):
-                plot_configs.append(("N-BEATS - Previsão", self.predictions.get("NBEATS"), "green"))
-            if self.selections.get("nhits_pred", False):
-                plot_configs.append(("N-HiTS - Previsão", self.predictions.get("NHiTS"), "red"))
+            actual = actual_ts.values().flatten()
 
-            for title, pred, color in plot_configs:
-                if pred is None:
-                    continue
-                fig, ax = plt.subplots(figsize=(8, 4))
-                ax.plot(self.timeseries.time_index, self.timeseries.values(), label="Original", color="black")
-                ax.plot(pred.time_index, pred.values(), label="Previsão", color=color)
-                ax.set_title(title)
-                ax.legend()
-                pdf.savefig(fig)
-                plt.close(fig)
+            rmse_value = rmse(actual_ts, predicted_ts)
+            mae_value = mae(actual_ts, predicted_ts)
+            nse_value = nse(actual_ts, predicted_ts)
+            kge_value = kge(actual_ts, predicted_ts)
 
-            # Gráfico único com todas as curvas de aprendizado
-            learning_curves = []
+            mk_result = mann_kendall_test(actual)
 
-            if self.selections.get("lhc_loss", False):
-                learning_curves.append(("LHC Loss", self.loss_curves["LHC"], "blue"))
-            if self.selections.get("nbeats_loss", False):
-                learning_curves.append(("N-BEATS Loss", self.loss_curves["NBEATS"], "green"))
-            if self.selections.get("nhits_loss", False):
-                learning_curves.append(("N-HiTS Loss", self.loss_curves["NHiTS"], "red"))
+            dagostino_result = dagostino_k_squared_test(self.residuals[model_name])
+            anderson_result = anderson_darling_test(self.residuals[model_name])
+            shapiro_result = shapiro_wilk_test(self.residuals[model_name])
 
-            fig, ax = plt.subplots(figsize=(8, 4))
-            for label, loss, color in learning_curves:
-                if loss is not None:
-                    ax.plot(range(len(loss)), loss, label=label, color=color)
+            adf_result = adf_test(actual)
+            kpss_result = kpss_test(actual)
 
-            ax.set_title("Curvas de Aprendizado")
-            ax.set_xlabel("Epoch")
-            ax.set_ylabel("Perda")
-            ax.legend()
-            pdf.savefig(fig)
-            plt.close(fig)
+            # Gerar gráficos ACF e PACF e salvar imagens temporárias
+            with tempfile.TemporaryDirectory() as tmpdir:
+                acf_path = os.path.join(tmpdir, "acf.png")
+                pacf_path = os.path.join(tmpdir, "pacf.png")
 
-        # Métricas
-        results_metrics = []
-        for name in self.metrics.mape:
-            print(name)
-            results_metrics.append({"Modelo": name.upper(), "MAPE": self.metrics.mape[name], "RMSE": self.metrics.rmse[name]})
+                plt.figure(figsize=(6, 3))
+                plot_acf(actual_ts, max_lag=40)
+                plt.suptitle("Autocorrelação", fontsize=14)
+                plt.tight_layout()
+                plt.savefig(acf_path)
+                plt.close()
 
-        df = pd.DataFrame(results_metrics)
-        df.to_excel("Métricas.xlsx", index=False)
+                plt.figure(figsize=(6, 3))
+                plot_pacf(actual_ts, max_lag=40)
+                plt.suptitle("Autocorrelação Parcial", fontsize=14)
+                plt.tight_layout()
+                plt.savefig(pacf_path)
+                plt.close()
 
-    def get_unique_filename(self,base_name, extension):
+                # Escrever texto no PDF
+                c.setFont("Helvetica-Bold", 14)
+                c.drawString(margin, y_position, f"Modelo: {model_name}")
+                y_position -= line_height * 2
+
+                c.setFont("Helvetica", 12)
+                lines = [
+                    f"Métricas:",
+                    f"",
+                    f"RMSE: {rmse_value:.4f}",
+                    f"MAE: {mae_value:.4f}",
+                    f"NSE: {nse_value:.4f}",
+                    f"KGE: {kge_value:.4f}",
+                    f"",
+                    f"",
+                    f"Tendência (Mann-Kendall):",
+                    f"",
+                    f"{mk_result['trend']}, Tau: {mk_result['tau']:.4f}, p-value: {mk_result['p']:.4f}",
+                    f"",
+                    f"",
+                    f"Normalidade dos Resíduos:",
+                    f"",
+                    f" - D’Agostino: {dagostino_result['result']} (p-value={dagostino_result.get('p_value', 'N/A'):.4f})",
+                    f" - Anderson-Darling: {anderson_result['result']} (Estatística={anderson_result.get('statistic', 'N/A'):.4f}, Critério 5%={anderson_result.get('critical_value_5pct', 'N/A'):.4f})",
+                    f" - Shapiro-Wilk: {shapiro_result['result']} (p-value={shapiro_result.get('p_value', 'N/A'):.4f})",
+                    f"",
+                    f"",
+                    f"Estacionariedade:",
+                    f"",
+                    f" - ADF: {adf_result['result']} (Estatística={adf_result['adf_statistic']:.4f}, p-value={adf_result['p_value']:.4f})",
+                    f" - KPSS: {kpss_result['result']} (Estatística={kpss_result['kpss_statistic']:.4f}, p-value={kpss_result['p_value']:.4f})",
+                ]
+
+                for line in lines:
+                    if y_position < margin:
+                        c.showPage()
+                        y_position = height - margin
+                        c.setFont("Helvetica", 12)
+                    c.drawString(margin, y_position, line)
+                    y_position -= line_height
+
+                # Inserir imagens dos gráficos
+                if y_position < 200:
+                    c.showPage()
+                    y_position = height - margin
+
+                acf_img = ImageReader(acf_path)
+                pacf_img = ImageReader(pacf_path)
+
+                c.drawImage(acf_img, margin, y_position - 150, width=250, height=150)
+                c.drawImage(pacf_img, margin + 270, y_position - 150, width=250, height=150)
+                y_position -= 170
+
+                # Linha separadora
+                c.line(margin, y_position, width - margin, y_position)
+                y_position -= line_height
+
+        c.save()
+        print(f"Relatório salvo em: {filename}")
+
+    def get_unique_filename(self, base_name, extension):
         filename = f"{base_name}.{extension}"
         counter = 1
         while os.path.exists(filename):

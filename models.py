@@ -101,14 +101,10 @@ class ModelRunWindow(ctk.CTkToplevel):
         y = round((screen_height - window_height) // 2, -1)
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
-    # def bring_fwd_window(self):
-    #     self.attributes("-topmost", True)
-
-
 class ModelRunLHCWindow(ModelRunWindow):
     def __init__(self, params, configs, series, preds=None, losses=None, models=None, residuals=None):
         super().__init__(params, configs, series, preds, losses, models, residuals)
-        self.title("Treinamento LHCModel")
+        self.title("LHC - Executando Modelo")
         self.centralize_window()
         # self.bring_fwd_window()
 

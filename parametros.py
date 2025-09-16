@@ -641,7 +641,7 @@ class NHiTSModelWindow(NModelWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("N-HiTS - Escolha os Parâmetros")
-        self.centralize_window(1050,200)
+        self.centralize_window(1090,200)
 
         # Pooling Kernel Sizes
         self.label_pooling_kernel_sizes = ctk.CTkLabel(master=self.hiperparameter_frame, text="Pooling Kernel Sizes:", font=("Arial", 14))
