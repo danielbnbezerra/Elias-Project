@@ -1,21 +1,22 @@
 import inspect
 import math
 import os
+import platform
+import subprocess
 import tempfile
+import torch
 
 import tkinter as tk
-import matplotlib.dates as mdates
 import customtkinter as ctk
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
 
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from darts.utils.statistics import plot_residuals_analysis, plot_acf, plot_pacf
-from torch import save as torch_save
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
 
 from metrics import *
 
@@ -65,7 +66,10 @@ class PlotWindow(ctk.CTkToplevel):
         report_menu = tk.Menu(export_menu, tearoff=0)
         export_menu.add_cascade(label="Resultados", menu=report_menu)
         report_menu.add_command(label="Gerar Relatório", command=self.generate_report_pdf)
+        report_menu.add_command(label="Exportar Gráficos", command=self.export_graphs_to_pdf)
         report_menu.add_command(label="Exportar Modelos", command=self.export_models)
+        report_menu.add_separator()
+        report_menu.add_command(label="Sair", command=self.destroy)
 
     def show_initial_graph_area(self):
         if hasattr(self, 'graph_area_frame'):
@@ -118,7 +122,7 @@ class PlotWindow(ctk.CTkToplevel):
                 ax.plot(series_obj.time_index, series_obj.values(), label=name)
 
             ax.set_xticks(
-                pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='MS'))
+                pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='YS'))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
             ax.tick_params(axis='x', labelsize=10)
             ax.tick_params(axis='y', labelsize=10)
@@ -230,30 +234,245 @@ class PlotWindow(ctk.CTkToplevel):
         screen_height = self.winfo_screenheight()
         self.geometry(f"{screen_width}x{screen_height}+{0}+{0}")
 
-    def export_models(self):
-        for name, model in self.models.items():
-            if name == "LHC":
-                torch_save(model.state_dict(), "lhc_model_weights.pth")
-                with open("lhc_model_class.py", "w") as f:
-                    f.write(inspect.getsource(type(model)))
-            elif name in ("NBEATS", "NHiTS"):
-                path = name.lower()
-                py_code = f"""
-    from darts.models import {type(model).__name__}
+    import inspect
+    import torch
 
-    def load_model():
-        model = {type(model).__name__}(
-            input_chunk_length={model.input_chunk_length},
-            output_chunk_length={model.output_chunk_length},
-            n_epochs={model.n_epochs},
-            random_state=42
+    def export_models(self):
+        """
+        Exporta cada modelo em self.models para arquivos .py, incluindo os imports necessários
+        para rodar cada modelo de forma independente, além dos parâmetros embutidos.
+        """
+        for name, model in self.models.items():
+            base_name = name.lower()
+            weights_filename = f"{base_name}_weights.pth"
+            ckpt_filename = f"{base_name}_weights.pth.ckpt"
+            script_filename = f"{base_name}_model.py"
+
+            if name == "LHC":
+                # Salvar pesos do modelo LHC
+                torch.save(model.state_dict(), weights_filename)
+
+                # Parâmetros usados no modelo
+                params = getattr(self, 'params', {}).get(name, {})
+                params_repr = repr(params)
+
+                # Script completo para o LHC, incluindo imports essenciais
+                lhc_complete_code = f"""import torch
+import torch.nn as nn
+import numpy as np
+import pytorch_lightning as pl
+from darts import TimeSeries
+
+# Parâmetros usados no treinamento
+params = {params_repr}
+
+# Classe LSTM usada pelo LHCModel
+class LSTMModel(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, output_size, dropout=0.0):
+        super().__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout)
+        self.fc = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        h0 = torch.zeros(self.lstm.num_layers, x.size(0), self.lstm.hidden_size).to(x.device)
+        c0 = torch.zeros(self.lstm.num_layers, x.size(0), self.lstm.hidden_size).to(x.device)
+        out, _ = self.lstm(x, (h0, c0))
+        out = self.fc(out[:, -1, :])
+        return out
+
+# Classe LightningModule para o LHCModel
+class LHCModel(pl.LightningModule):
+    def __init__(self, params, input_size):
+        super().__init__()
+        self.save_hyperparameters(params)
+        self.model = LSTMModel(
+            input_size=input_size,
+            hidden_size=params['hidden_size'],
+            num_layers=params['num_layers'],
+            output_size=1,
+            dropout=params.get('dropout', 0.0)
         )
-        model.load_model('{path}_weights.pth.tar')
-        return model
+        self.loss_fn = nn.MSELoss()
+        self.learning_rate = params.get('learning_rate', 0.001)
+        self.random_state = params.get('random_state', 42)
+        torch.manual_seed(self.random_state)
+
+    def forward(self, x):
+        return self.model(x)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = self.loss_fn(y_hat, y[:, -1, :])
+        self.log('train_loss', loss, prog_bar=True, on_epoch=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        val_loss = self.loss_fn(y_hat, y[:, -1, :])
+        self.log('val_loss', val_loss, prog_bar=True, on_epoch=True)
+        return val_loss
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+
+# Funções auxiliares para processamento de dados e predição
+def series_to_batches(series_list, input_len, output_len):
+    \"\"\"Transforma séries em janelas (batches) de entrada/target para treino.\"\"\"
+    X, Y = [], []
+    for series in series_list:
+        arr = series.squeeze(0).numpy()
+        seq_len, n_features = arr.shape
+        max_start = seq_len - input_len - output_len + 1
+        for start in range(max_start):
+            x = arr[start : start + input_len]
+            y = arr[start + input_len : start + input_len + output_len, 0:1]
+            X.append(x)
+            Y.append(y)
+    inputs = torch.tensor(np.array(X, dtype=np.float32))
+    targets = torch.tensor(np.array(Y, dtype=np.float32))
+    return inputs, targets
+
+def recursive_predict(lit_model, start_series, covariates, input_len, n_predict, device):
+    \"\"\"Predição recursiva usando o modelo treinado.\"\"\"
+    lit_model.model.eval()
+    predictions = []
+    input_seq = torch.cat([start_series[:, -input_len:, :], covariates[:, :input_len, :]], dim=2).to(device)
+
+    with torch.no_grad():
+        for i in range(n_predict):
+            out = lit_model.model(input_seq)
+            predictions.append(out.cpu().numpy())
+
+            if i + input_len < covariates.shape[1]:
+                next_cov = covariates[:, i+input_len : i+input_len+1, :]
+            else:
+                next_cov = torch.zeros(1, 1, covariates.shape[2]).to(device)
+
+            next_input = torch.cat([out.unsqueeze(2), next_cov], dim=2)
+            input_seq = torch.cat([input_seq[:, 1:, :], next_input], dim=1)
+
+    predictions = np.concatenate(predictions, axis=0)
+    return torch.tensor(predictions)
+
+def predictions_to_timeseries(predictions_tensor, time_index):
+    \"\"\"Converte tensor de predições para TimeSeries do Darts.\"\"\"
+    preds_array = predictions_tensor.squeeze(1).cpu().numpy()
+    return TimeSeries.from_times_and_values(time_index, preds_array)
+
+def residuals_timeseries(valid_target_tensor, predictions_ts):
+    \"\"\"Calcula resíduos como série temporal no formato Darts.\"\"\"
+    actual = valid_target_tensor.squeeze(0).cpu().numpy()[:len(predictions_ts)]
+    residuals = actual - predictions_ts.values()
+    return TimeSeries.from_times_and_values(predictions_ts.time_index, residuals)
+
+def load_model(weights_path='{weights_filename}', input_size=None):
+    \"\"\"
+    Carrega o modelo LHC a partir dos pesos salvos.
+
+    Args:
+        weights_path: Caminho para o arquivo de pesos (.pth)
+        input_size: Tamanho da dimensão de entrada (número de features)
+
+    Returns:
+        Modelo LHC carregado e pronto para inferência
+    \"\"\"
+    if input_size is None:
+        raise ValueError(\"input_size deve ser fornecido para carregar o modelo\")
+
+    device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")
+    model = LHCModel(params, input_size)
+    model.load_state_dict(torch.load(weights_path, map_location=device))
+    model.to(device)
+    model.eval()
+    return model
+
+def predict_with_model(model, train_target, covariates, input_len, n_predict, time_index):
+    \"\"\"
+    Função de conveniência para fazer predições com o modelo carregado.
+
+    Args:
+        model: Modelo LHC carregado
+        train_target: Dados de treino (tensor)
+        covariates: Covariáveis para predição (tensor)  
+        input_len: Tamanho da janela de entrada
+        n_predict: Número de passos a prever
+        time_index: Índice temporal para a série resultante
+
+    Returns:
+        TimeSeries com as predições
+    \"\"\"
+    device = next(model.parameters()).device
+    predictions_tensor = recursive_predict(
+        model, train_target, covariates, input_len, n_predict, device
+    )
+    return predictions_to_timeseries(predictions_tensor, time_index)
+
+if __name__ == \"__main__\":
+    print(\"Modelo LHC - Arquivo de exportação\")
+    print(f\"Parâmetros usados: {{params}} \")
+    print(\"Use load_model() para carregar o modelo treinado\")
     """
-                with open(f"{path}_model.py", "w") as f:
-                    f.write(py_code)
-                    model.save_model(f"{path}_weights.pth.tar")
+
+                with open(script_filename, "w", encoding="utf-8") as f:
+                    f.write(lhc_complete_code)
+
+            elif name in ("NBEATS", "NHiTS"):
+                # Salvar modelo DARTS
+                model.save(weights_filename)
+
+
+                # Parâmetros usados
+                params = getattr(self, 'params', {}).get(name, {})
+                params_repr = repr(params)
+
+                # Importações necessárias para modelos DARTS
+                load_code = f"""import torch
+from darts.models import {type(model).__name__}
+
+# Parâmetros usados no treinamento
+params = {params_repr}
+
+def load_model(weights_path='{weights_filename}'):
+    \"\"\"
+    Carrega o modelo {name} a partir dos pesos salvos.
+
+    Args:
+        weights_path: Caminho para o arquivo de pesos
+
+    Returns:
+        Modelo {name} carregado e pronto para uso
+    \"\"\"
+    # Criar modelo com os parâmetros originais
+    model = {type(model).__name__}(
+        input_chunk_length=params.get('input_chunk_length'),
+        output_chunk_length=params.get('output_chunk_length'),
+        n_epochs=params.get('n_epochs', 1),
+        random_state=params.get('random_state', 42),
+        **{{k: v for k, v in params.items() if k not in ['input_chunk_length', 'output_chunk_length', 'n_epochs', 'random_state']}}
+    )
+
+    # Carregar pesos salvos
+    model = model.load(weights_path)
+    return model
+
+if __name__ == \"__main__\":
+    print(\"Modelo {name} - Arquivo de exportação\")
+    print(f\"Parâmetros usados: {{params}} \")
+    print(\"Use load_model() para carregar o modelo treinado\")
+    """
+
+                with open(script_filename, "w", encoding="utf-8") as f:
+                    f.write(load_code)
+
+            else:
+                print(f"Exportação para modelo {name} não implementada.")
+
+            if os.path.exists(ckpt_filename):
+                os.remove(ckpt_filename)
+
+        print("Modelos exportados com sucesso!")
 
     def generate_report_pdf(self, name_file=f"Relatório Completo"):
         filename = self.get_unique_filename(name_file,"pdf")
@@ -264,7 +483,7 @@ class PlotWindow(ctk.CTkToplevel):
 
         y_position = height - margin
 
-        for model_name, predicted_ts in self.predictions.items():
+        for idx, (model_name, predicted_ts) in enumerate(self.predictions.items()):
             actual_ts = self.timeseries.valid_target
 
             actual = actual_ts.values().flatten()
@@ -290,14 +509,14 @@ class PlotWindow(ctk.CTkToplevel):
 
                 plt.figure(figsize=(6, 3))
                 plot_acf(actual_ts, max_lag=40)
-                plt.suptitle("Autocorrelação", fontsize=14)
+                plt.suptitle("Autocorrelação", fontsize=20)
                 plt.tight_layout()
                 plt.savefig(acf_path)
                 plt.close()
 
                 plt.figure(figsize=(6, 3))
                 plot_pacf(actual_ts, max_lag=40)
-                plt.suptitle("Autocorrelação Parcial", fontsize=14)
+                plt.suptitle("Autocorrelação Parcial", fontsize=20)
                 plt.tight_layout()
                 plt.savefig(pacf_path)
                 plt.close()
@@ -359,8 +578,12 @@ class PlotWindow(ctk.CTkToplevel):
                 c.line(margin, y_position, width - margin, y_position)
                 y_position -= line_height
 
+                if idx < len(self.predictions) - 1:
+                    c.showPage()
+                    y_position = height - margin
+
         c.save()
-        print(f"Relatório salvo em: {filename}")
+        self.open_pdf_file(filename)
 
     def get_unique_filename(self, base_name, extension):
         filename = f"{base_name}.{extension}"
@@ -369,6 +592,68 @@ class PlotWindow(ctk.CTkToplevel):
             filename = f"{base_name} ({counter}).{extension}"
             counter += 1
         return filename
+
+    # Função para salvar figures matplotlib em imagens temporárias
+    def save_figure_temp(self, fig):
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
+            fig.savefig(tmpfile.name, bbox_inches='tight')
+            return tmpfile.name
+
+    # Função que cria um PDF apenas com os gráficos criados
+    # Espera receber a lista self.graphs da classe PlotWindow
+    def export_graphs_to_pdf(self, name_file='Gráficos Exportados'):
+        filename = self.get_unique_filename(name_file,'pdf')
+        c = canvas.Canvas(filename, pagesize=letter)
+        width, height = letter
+        margin = 40
+        y_position = height - margin
+        line_height = 14
+        max_img_height = 300
+
+        if not self.graphs:
+            c.drawString(margin, y_position, "Nenhum gráfico para exportar.")
+            c.save()
+            return filename
+
+        for i, graph in enumerate(self.graphs):
+            c.setFont("Helvetica-Bold", 14)
+            c.drawString(margin, y_position, f"Gráfico {i + 1}: {graph.get('name', '')}")
+            y_position -= line_height * 2
+
+            # Salvar o figure associado ao canvas em imagem temporária
+            fig = graph['canvas'].figure
+            img_path = self.save_figure_temp(fig)
+
+            img_width = width - 2 * margin
+            # Manter proporções da imagem
+            fig_width, fig_height = fig.get_size_inches()
+            fig_dpi = fig.get_dpi()
+            orig_img_width = fig_width * fig_dpi
+            orig_img_height = fig_height * fig_dpi
+            scale_factor = min(img_width / orig_img_width, max_img_height / orig_img_height)
+            disp_width = orig_img_width * scale_factor
+            disp_height = orig_img_height * scale_factor
+
+            if y_position - disp_height < margin:
+                c.showPage()
+                y_position = height - margin
+
+            c.drawImage(img_path, margin, y_position - disp_height, width=disp_width, height=disp_height)
+            y_position -= disp_height + line_height * 2
+
+            # Remover arquivo temporário
+            os.remove(img_path)
+
+        c.save()
+        self.open_pdf_file(filename)
+
+    def open_pdf_file(self, path):
+        if platform.system() == 'Windows':
+            os.startfile(path)
+        elif platform.system() == 'Darwin':  # macOS
+            subprocess.call(['open', path])
+        else:  # Linux e outros
+            subprocess.call(['xdg-open', path])
 
 class CreateGraphModal(ctk.CTkToplevel):
     def __init__(self, parent, series, predictions, losses, residuals, callback):

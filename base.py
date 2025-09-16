@@ -1,5 +1,3 @@
-import shutil
-
 from tkcalendar import DateEntry
 
 from parametros import *

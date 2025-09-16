@@ -1,12 +1,10 @@
-import os
-
 import numpy as np
-import pandas as pd
 import pymannkendall as mk
 
-from scipy.stats import normaltest, shapiro, anderson
 from darts.metrics import rmse, mae
-from statsmodels.tsa.stattools import acf, pacf, adfuller, kpss
+from scipy.stats import normaltest, shapiro, anderson
+from statsmodels.tsa.stattools import adfuller, kpss
+
 
 # RMSE - Root Mean Squared Error
 def calc_rmse(actual, predicted):

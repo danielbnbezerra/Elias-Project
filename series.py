@@ -1,9 +1,7 @@
-import datetime
 import pandas as pd
 
-from datetime import datetime
 from darts import TimeSeries
-from darts.metrics import mape, rmse
+
 
 class GetSeries:
     def __init__(self, series_files, train_percent):

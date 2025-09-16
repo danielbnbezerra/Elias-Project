@@ -80,15 +80,6 @@ class ModelRunWindow(ctk.CTkToplevel):
                                     residuals=self.residuals)
             self.destroy()
         else:
-            for nome_modelo, data in self.predictions.items():
-                print(f"{nome_modelo}: {data}")
-            for nome_modelo, data in self.residuals.items():
-                print(f"{nome_modelo}: {data}")
-            for nome_modelo, data in self.losses.items():
-                print(f"{nome_modelo}: {data}")
-            for nome_modelo, data in self.models.items():
-                print(f"{nome_modelo}: {data}")
-
             PlotWindow(self.series, self.predictions, self.residuals, self.losses, self.models)
             self.after(100, self.destroy)
 
@@ -151,7 +142,7 @@ class ModelRunLHCWindow(ModelRunWindow):
 
         if self.params.get('save_checkpoints', 'false').lower() == 'true':
             checkpoint_callback = ModelCheckpoint(
-                monitor="val_loss",  # Agora monitoramos a loss de validação
+                monitor="val_loss",
                 mode="min",
                 save_top_k=1,
                 filename="lhc-best-model-{epoch:02d}-{val_loss:.4f}",
