@@ -94,9 +94,6 @@ class ModelRunWindow(ctk.CTkToplevel):
         """
         input_len = 24
 
-        # --- INÍCIO DA CORREÇÃO 'JUST-IN-TIME' ---
-        # Pegamos as séries originais que podem estar com freq=None.
-        # Assumindo que elas estão em self.series_processor ou self.series
         original_flow = self.series.flow
         original_covariates = self.series.prate_covariates
 
