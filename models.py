@@ -1,5 +1,6 @@
 import threading
 
+from darts import concatenate
 from darts.models import NBEATSModel
 from darts.models import NHiTSModel
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -20,7 +21,7 @@ class LossTracker(Callback):
             self.losses.append(loss.item())
 
 class ModelRunWindow(ctk.CTkToplevel):
-    def __init__(self, params, configs, series=None, predictions=None, losses=None, models=None, residuals=None):
+    def __init__(self, params, configs, series=None, predictions=None, simulations=None, losses=None, models=None, residuals=None):
         super().__init__()
         self.grab_set()
         self.grid_propagate(True)
@@ -34,7 +35,9 @@ class ModelRunWindow(ctk.CTkToplevel):
         self.losses = losses if losses is not None else {}
         self.models = models if models is not None else {}
         self.residuals = residuals if residuals is not None else {}
+        self.simulations = simulations if simulations is not None else {}
 
+        self.device = None
         self.model = None
         self.epochs = None
         self.current_epoch = None
@@ -67,6 +70,7 @@ class ModelRunWindow(ctk.CTkToplevel):
                                      configs=self.configurations,
                                      series=self.series,
                                      preds=self.predictions,
+                                     simul=self.simulations,
                                      losses=self.losses,
                                      models=self.models,
                                      residuals=self.residuals)
@@ -75,13 +79,88 @@ class ModelRunWindow(ctk.CTkToplevel):
                                     configs=self.configurations,
                                     series=self.series,
                                     preds=self.predictions,
+                                    simul=self.simulations,
                                     losses=self.losses,
                                     models=self.models,
                                     residuals=self.residuals)
             self.destroy()
         else:
-            PlotWindow(self.series, self.predictions, self.residuals, self.losses, self.models)
+            PlotWindow(self.series, self.predictions, self.simulations, self.residuals, self.losses, self.models)
             self.after(100, self.destroy)
+
+    def recursive_simulation(self, model, model_type, device=None):
+        """
+        Simula recursivamente, corrigindo a frequência da série 'just-in-time'.
+        """
+        input_len = 24
+
+        # --- INÍCIO DA CORREÇÃO 'JUST-IN-TIME' ---
+        # Pegamos as séries originais que podem estar com freq=None.
+        # Assumindo que elas estão em self.series_processor ou self.series
+        original_flow = self.series.flow
+        original_covariates = self.series.prate_covariates
+
+        flow_corrected = TimeSeries.from_times_and_values(
+            original_flow.time_index,
+            original_flow.values(),
+            freq='D',
+            fill_missing_dates=True # Adicionado para robustez
+        )
+        covariates_corrected = TimeSeries.from_times_and_values(
+            original_covariates.time_index,
+            original_covariates.values(),
+            freq='D',
+            fill_missing_dates=True # Adicionado para robustez
+        )
+        # --- FIM DA CORREÇÃO ---
+
+        if model_type == 'lhc':
+            # A lógica do LHC também se beneficia da série com frequência correta
+            start_flow_tensor = torch.tensor(flow_corrected[:input_len].values(), dtype=torch.float32).unsqueeze(0)
+            prate_cov_tensor = torch.tensor(covariates_corrected.values(), dtype=torch.float32).unsqueeze(0)
+
+            start_cov_tensor = prate_cov_tensor[:, :input_len, :]
+            initial_input_seq_sim = torch.cat([start_flow_tensor, start_cov_tensor], dim=2)
+
+            future_covariates_sim = prate_cov_tensor[:, input_len:, :]
+            n_predict = len(flow_corrected) - input_len
+
+            preds_tensor = recursive_predict(
+                model,
+                initial_input_seq_sim,
+                future_covariates_sim,
+                n_predict,
+                device
+            )
+            simul_series = predictions_to_timeseries(preds_tensor, self.series.flow[input_len:].time_index)
+            return simul_series
+
+
+        elif model_type in ['nbeats', 'nhits']:
+
+            simulated_values = []
+
+            current_input_series = flow_corrected[:input_len]
+
+            all_covariates = covariates_corrected
+
+            n_predict = len(flow_corrected) - input_len
+
+            for i in range(n_predict):
+                covariates_for_prediction = all_covariates.slice_intersect(current_input_series)
+                pred = model.predict(
+                    n=1,
+                    series=current_input_series,
+                    past_covariates=covariates_for_prediction
+                )
+                simulated_values.append(pred)
+                current_input_series = current_input_series.append(pred)[-input_len:]
+
+            simulated_series = concatenate(simulated_values, axis=0)
+            return simulated_series
+
+        else:
+            raise ValueError("model_type deve ser 'lhc', 'nbeats' ou 'nhits'.")
 
     def centralize_window(self):
         window_width = 400
@@ -93,8 +172,8 @@ class ModelRunWindow(ctk.CTkToplevel):
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
 class ModelRunLHCWindow(ModelRunWindow):
-    def __init__(self, params, configs, series, preds=None, losses=None, models=None, residuals=None):
-        super().__init__(params, configs, series, preds, losses, models, residuals)
+    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None):
+        super().__init__(params, configs, series, preds, simul, losses, models, residuals)
         self.title("LHC - Executando Modelo")
         self.centralize_window()
         # self.bring_fwd_window()
@@ -170,30 +249,40 @@ class ModelRunLHCWindow(ModelRunWindow):
     def post_training(self):
         n_predict = len(self.valid_target.squeeze(0))
 
+        # Prepara a janela de aquecimento (warm-up) com os últimos dados de treino
+        train_len = self.train_target.shape[1]
+        warm_up_flow = self.train_target[:, train_len - self.input_len:, :]
+        warm_up_cov = self.train_cov[:, train_len - self.input_len:, :]
+        initial_input_seq_pred = torch.cat([warm_up_flow, warm_up_cov], dim=2)
+
+        # As covariáveis futuras para a predição são as do conjunto de validação
+        future_covariates_pred = self.valid_cov
+
         preds_tensor = recursive_predict(
             self.model,
-            self.train_target,
-            self.prate_covariates,
-            self.input_len,
+            initial_input_seq_pred,
+            future_covariates_pred,
             n_predict,
             self.device
         )
 
         preds_ts = predictions_to_timeseries(preds_tensor, self.pred_time_index)
         residuals_ts = residuals_timeseries(self.valid_target, preds_ts)
-
         self.predictions["LHC"] = preds_ts
         self.residuals["LHC"] = residuals_ts
+
+        simulation_ts = self.recursive_simulation(self.model, 'lhc', self.device)
+        self.simulations["LHC"] = simulation_ts
+
         self.losses["LHC"] = self.loss_tracker.losses
         self.models["LHC"] = self.model
         self.next_model_run()
 
 class ModelRunNBEATSWindow(ModelRunWindow):
-    def __init__(self, params, configs, series=None, preds=None, losses=None, models=None, residuals=None):
-        super().__init__(params, configs, series, preds, losses, models, residuals)
+    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None):
+        super().__init__(params, configs, series, preds, simul, losses, models, residuals)
         self.title("N-BEATS - Executando Modelo")
         self.centralize_window()
-        # self.bring_fwd_window()
 
         self.loss_tracker = LossTracker()
         self.model_creation()
@@ -253,15 +342,17 @@ class ModelRunNBEATSWindow(ModelRunWindow):
     def predict_model(self):
         predictions = self.model.predict(series=self.series.train_target, past_covariates=self.series.prate_covariates, n=len(self.series.valid_target))
         self.predictions["NBEATS"] = predictions
+        simulation = self.recursive_simulation(self.model,'nbeats')
+        self.simulations["NBEATS"] = simulation
+        print(self.simulations["NBEATS"])
         self.label_progress.configure(text="Processando os resíduos. Aguarde.")
         self.start_residuals()
 
 class ModelRunNHiTSWindow(ModelRunWindow):
-    def __init__(self, params, configs, series=None, preds=None, losses=None, models=None, residuals=None):
-        super().__init__(params, configs, series, preds, losses, models, residuals)
+    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None):
+        super().__init__(params, configs, series, preds, simul, losses, models, residuals)
         self.title("N-HiTS - Executando Modelo")
         self.centralize_window()
-        # self.bring_fwd_window()
 
         self.loss_tracker = LossTracker()
         self.model_creation()
@@ -321,5 +412,7 @@ class ModelRunNHiTSWindow(ModelRunWindow):
         predictions = self.model.predict(series=self.series.train_target, past_covariates=self.series.prate_covariates,
                                          n=len(self.series.valid_target))
         self.predictions["NHiTS"] = predictions
+        simulation = self.recursive_simulation(self.model,'nhits')
+        self.simulations["NHiTS"] = simulation
         self.label_progress.configure(text="Processando os resíduos. Aguarde.")
         self.start_residuals()

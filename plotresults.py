@@ -22,7 +22,7 @@ from metrics import *
 
 
 class PlotWindow(ctk.CTkToplevel):
-    def __init__(self, series, predictions, residuals, losses, models):
+    def __init__(self, series, predictions, simulations, residuals, losses, models):
         super().__init__()
         self.title("Visualização de Resultados")
         self.grab_set()
@@ -35,9 +35,12 @@ class PlotWindow(ctk.CTkToplevel):
                        "Vazão":series.flow}
 
         self.predictions = predictions
+        self.simulations = simulations
         self.residuals = residuals
         self.losses = losses
         self.models = models
+        for name, simul in self.simulations.items():
+            print(name, simul)
 
         # Menu lateral
         self.menu_frame = ctk.CTkFrame(self, width=200, fg_color='#DDDDDD')
@@ -89,6 +92,7 @@ class PlotWindow(ctk.CTkToplevel):
             self,
             self.series,
             self.predictions,
+            self.simulations,
             self.losses,
             self.residuals,
             self.add_graph
@@ -142,6 +146,27 @@ class PlotWindow(ctk.CTkToplevel):
 
             ax.set_xticks(
                 pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='YS'))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+            ax.tick_params(axis='x', labelsize=10)
+            ax.tick_params(axis='y', labelsize=10)
+            ax.set_xlabel('Tempo', fontsize=15)
+            ax.set_ylabel('Vazão', fontsize=15)
+            ax.legend(fontsize=10, loc='best')
+            ax.grid(True)
+            ax.set_title(name_entry)
+
+        # Simulações
+        elif selected_data_indices.get("Simulações"):
+            simul_start = 24
+            # Plota série flow inteira com tempo original para comparação
+            ax.plot(self.series["Vazão"][simul_start:].time_index, self.series["Vazão"][simul_start:].values(), label="Série Observada")
+
+            # Para cada previsão, usa seu time_index para alinhamento correto no tempo
+            for name, simul_series in selected_data_indices["Simulações"].items():
+                ax.plot(simul_series.time_index, simul_series.values(), label=f"{name} - Simulação")
+
+            ax.set_xticks(
+                pd.date_range(start=self.series["Vazão"][simul_start:].start_time(), end=self.series["Vazão"][simul_start:].end_time(), freq='YS'))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
             ax.tick_params(axis='x', labelsize=10)
             ax.tick_params(axis='y', labelsize=10)
@@ -233,9 +258,6 @@ class PlotWindow(ctk.CTkToplevel):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         self.geometry(f"{screen_width}x{screen_height}+{0}+{0}")
-
-    import inspect
-    import torch
 
     def export_models(self):
         """
@@ -508,14 +530,14 @@ if __name__ == \"__main__\":
                 pacf_path = os.path.join(tmpdir, "pacf.png")
 
                 plt.figure(figsize=(6, 3))
-                plot_acf(actual_ts, max_lag=40)
+                plot_acf(actual_ts, max_lag=min(40, int(len(actual_ts)/4)))
                 plt.suptitle("Autocorrelação", fontsize=20)
                 plt.tight_layout()
                 plt.savefig(acf_path)
                 plt.close()
 
                 plt.figure(figsize=(6, 3))
-                plot_pacf(actual_ts, max_lag=40)
+                plot_pacf(actual_ts, max_lag=min(40, int(len(actual_ts)/4)))
                 plt.suptitle("Autocorrelação Parcial", fontsize=20)
                 plt.tight_layout()
                 plt.savefig(pacf_path)
@@ -656,7 +678,7 @@ if __name__ == \"__main__\":
             subprocess.call(['xdg-open', path])
 
 class CreateGraphModal(ctk.CTkToplevel):
-    def __init__(self, parent, series, predictions, losses, residuals, callback):
+    def __init__(self, parent, series, predictions, simulations, losses, residuals, callback):
         super().__init__(parent)
         self.title("Novo Gráfico")
         self.grab_set()
@@ -667,6 +689,7 @@ class CreateGraphModal(ctk.CTkToplevel):
         self.series_names = list(series.keys())
         self.series = series
         self.predictions = predictions
+        self.simulations = simulations
         self.losses = losses
         self.residuals = residuals
 
@@ -689,12 +712,16 @@ class CreateGraphModal(ctk.CTkToplevel):
         self.rb_res = ctk.CTkRadioButton(self.options_graph_frame, text="Resíduos", variable=self.graph_type,
                                          value="Resíduos", command=self.update_options)
         self.rb_res.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        self.rb_simul = ctk.CTkRadioButton(self.options_graph_frame, text="Simulações", variable=self.graph_type,
+                                            value="Simulações", command=self.update_options)
+        self.rb_simul.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 
         self.options_frame = ctk.CTkFrame(self, fg_color="#EBEBEB")
         self.options_frame.pack(fill="both", expand=True, pady=(8,0), padx=5)
 
         self.series_checks = []
         self.prediction_checks = []
+        self.simulation_checks = []
         self.losses_checks = []
         self.residual_checks = []
         self.residual_var = ctk.IntVar(value=-1)
@@ -714,6 +741,7 @@ class CreateGraphModal(ctk.CTkToplevel):
 
         self.series_checks = []
         self.prediction_checks = []
+        self.simulation_checks = []
         self.losses_checks = []
         self.residual_checks = []
 
@@ -747,6 +775,16 @@ class CreateGraphModal(ctk.CTkToplevel):
                 cb.pack(anchor="w", padx=20)
                 self.losses_checks.append(var)
 
+        elif self.graph_type.get() == "Simulações":
+            label_simul = ctk.CTkLabel(self.options_frame, text="Selecione Simulações:", font=ctk.CTkFont(size=13, weight="bold"))
+            label_simul.pack(anchor="w", pady=(10, 0), padx=10)
+
+            for name in self.simulations.keys():
+                var = ctk.BooleanVar(value=False)
+                cb = ctk.CTkCheckBox(self.options_frame, text=name, variable=var)
+                cb.pack(anchor="w", padx=20)
+                self.simulation_checks.append(var)
+
         else:  # Resíduos
             label_res = ctk.CTkLabel(self.options_frame, text="Selecione o resíduo (DARTS):", font=ctk.CTkFont(size=13, weight="bold"))
             label_res.pack(anchor="w", pady=(15, 5), padx=10)
@@ -768,6 +806,7 @@ class CreateGraphModal(ctk.CTkToplevel):
                 selected_data = {
                     "Séries": selected_series,
                     "Previsões": {},
+                    "Simulações": {},
                     "Curvas de Aprendizado": {},
                     "Resíduos": None
                 }
@@ -782,6 +821,7 @@ class CreateGraphModal(ctk.CTkToplevel):
                 selected_data = {
                     "Séries": {},
                     "Previsões": selected_predictions,
+                    "Simulações": {},
                     "Curvas de Aprendizado": {},
                     "Resíduos": None
                 }
@@ -795,7 +835,23 @@ class CreateGraphModal(ctk.CTkToplevel):
                 selected_data = {
                     "Séries": {},
                     "Previsões": {},
+                    "Simulações": {},
                     "Curvas de Aprendizado": selected_losses,
+                    "Resíduos": None
+                }
+                self.callback(name, selected_data)
+                self.destroy()
+
+        elif self.graph_type.get() == "Simulações":
+            selected_names = [name for i, name in enumerate(self.simulations.keys()) if
+                              self.simulation_checks[i].get()]
+            if selected_names:
+                selected_simulations = {n: self.simulations[n] for n in selected_names}
+                selected_data = {
+                    "Séries": {},
+                    "Previsões": {},
+                    "Simulações": selected_simulations,
+                    "Curvas de Aprendizado": {},
                     "Resíduos": None
                 }
                 self.callback(name, selected_data)
@@ -808,6 +864,7 @@ class CreateGraphModal(ctk.CTkToplevel):
                 selected_data = {
                     "Séries": {},
                     "Previsões": {},
+                    "Simulações": {},
                     "Curvas de Aprendizado": {},
                     "Resíduos": {res_key: self.residuals[res_key]}
                 }

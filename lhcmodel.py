@@ -86,21 +86,41 @@ def series_to_batches(series_list, input_len, output_len):
     targets = torch.tensor(np.array(Y, dtype=np.float32))
     return inputs, targets
 
-def recursive_predict(lit_model, start_series, covariates, input_len, n_predict, device):
+
+def recursive_predict(lit_model, initial_input_seq, future_covariates, n_predict, device):
+    """
+    Realiza predição/simulação recursiva de forma robusta.
+
+    Args:
+        lit_model: O modelo treinado.
+        initial_input_seq: Tensor de warm-up com formato [1, input_len, n_features], já contendo vazão e covariáveis alinhadas.
+        future_covariates: Tensor com as covariáveis futuras conhecidas para o período de predição.
+        n_predict: Número de passos a prever.
+        device: Dispositivo (cpu ou cuda).
+    """
     lit_model.model.eval()
     predictions = []
-    input_seq = torch.cat([start_series[:, -input_len:, :], covariates[:, :input_len, :]], dim=2).to(device)
+    input_seq = initial_input_seq.to(device)
+    num_covariates = future_covariates.shape[2]
 
     with torch.no_grad():
         for i in range(n_predict):
-            out = lit_model.model(input_seq)
+            out = lit_model.model(input_seq)  # Shape: [1, 1]
             predictions.append(out.cpu().numpy())
-            if i + input_len < covariates.shape[1]:
-                next_cov = covariates[:, i+input_len : i+input_len+1, :]
+
+            # Obtém a covariável para o próximo passo
+            if i < future_covariates.shape[1]:
+                next_cov = future_covariates[:, i:i + 1, :]
             else:
-                next_cov = torch.zeros(1, 1, covariates.shape[2]).to(device)
+                # Se acabarem as covariáveis futuras, preenche com zeros
+                next_cov = torch.zeros(1, 1, num_covariates).to(device)
+
+            # Cria o vetor de features para o próximo passo (vazão prevista + covariável futura)
             next_input = torch.cat([out.unsqueeze(2), next_cov], dim=2)
+
+            # Desliza a janela de entrada: remove o passo mais antigo e adiciona o novo
             input_seq = torch.cat([input_seq[:, 1:, :], next_input], dim=1)
+
     predictions = np.concatenate(predictions, axis=0)
     return torch.tensor(predictions)
 
