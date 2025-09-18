@@ -173,7 +173,6 @@ class ModelRunLHCWindow(ModelRunWindow):
         super().__init__(params, configs, series, preds, simul, losses, models, residuals)
         self.title("LHC - Executando Modelo")
         self.centralize_window()
-        # self.bring_fwd_window()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
