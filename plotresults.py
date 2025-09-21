@@ -515,15 +515,18 @@ if __name__ == \"__main__\":
             nse_value = nse(actual_ts, predicted_ts)
             kge_value = kge(actual_ts, predicted_ts)
 
+            #Gerar mk da simulação também
             mk_result = mann_kendall_test(actual)
 
             dagostino_result = dagostino_k_squared_test(self.residuals[model_name])
             anderson_result = anderson_darling_test(self.residuals[model_name])
             shapiro_result = shapiro_wilk_test(self.residuals[model_name])
 
+            #Gerar da simulação também
             adf_result = adf_test(actual)
             kpss_result = kpss_test(actual)
 
+            #Gerar da série de entrada para comparar
             # Gerar gráficos ACF e PACF e salvar imagens temporárias
             with tempfile.TemporaryDirectory() as tmpdir:
                 acf_path = os.path.join(tmpdir, "acf.png")

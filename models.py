@@ -109,7 +109,6 @@ class ModelRunWindow(ctk.CTkToplevel):
             freq='D',
             fill_missing_dates=True # Adicionado para robustez
         )
-        # --- FIM DA CORREÇÃO ---
 
         if model_type == 'lhc':
             # A lógica do LHC também se beneficia da série com frequência correta
