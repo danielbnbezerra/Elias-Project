@@ -823,7 +823,7 @@ class NBEATSModelWindow(NModelWindow):
                 "n_epochs": n_epochs,
                 "random_state": self.random_state,
                 "dropout": dropout,
-                "activation": activation_str,  # Usa a string original
+                "activation": activation_str,
                 "batch_size": batch_size,
                 "expansion_coefficient_dim": expansion_coefficient_dim,
                 "save_checkpoints": save_checkpoints
@@ -832,7 +832,6 @@ class NBEATSModelWindow(NModelWindow):
             return True  # Sucesso
 
         except (ValueError, TypeError):
-            # Este 'except' agora vai pegar apenas erros de digitação (ex: "abc" em um campo numérico)
             messagebox.showerror("Erro de Formato",
                                  "Por favor, insira apenas valores numéricos válidos nos campos.")
             return False
