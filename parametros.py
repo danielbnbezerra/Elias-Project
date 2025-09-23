@@ -65,7 +65,6 @@ class Tooltip:
 class ConfirmExitWindow(ctk.CTkToplevel):
     @staticmethod
     def cleanup_darts_logs():
-
         folders_to_delete = ["darts_logs", "checkpoints"]
         for folder in folders_to_delete:
             if os.path.exists(folder):
