@@ -59,6 +59,7 @@ class PlotWindow(ctk.CTkToplevel):
 
         self.show_initial_graph_area()
         self.centralize_window()
+        self.state("zoomed")
 
     def create_submenu(self):
         #Export Menu
@@ -157,16 +158,21 @@ class PlotWindow(ctk.CTkToplevel):
 
         # Simulações
         elif selected_data_indices.get("Simulações"):
-            simul_start = 24
+            common_index = self.series["Vazão"].time_index
+            for simul_series in selected_data_indices["Simulações"].values():
+                common_index = common_index.intersection(simul_series.time_index)
+
             # Plota série flow inteira com tempo original para comparação
-            ax.plot(self.series["Vazão"][simul_start:].time_index, self.series["Vazão"][simul_start:].values(), label="Série Observada")
+            flow_aligned = self.series["Vazão"][common_index]
+            ax.plot(flow_aligned.time_index, flow_aligned.values(), label="Série Observada")
 
             # Para cada previsão, usa seu time_index para alinhamento correto no tempo
             for name, simul_series in selected_data_indices["Simulações"].items():
-                ax.plot(simul_series.time_index, simul_series.values(), label=f"{name} - Simulação")
+                simul_series_aligned = simul_series[common_index]
+                ax.plot(simul_series_aligned.time_index, simul_series_aligned.values(), label=f"{name} - Simulação")
 
             ax.set_xticks(
-                pd.date_range(start=self.series["Vazão"][simul_start:].start_time(), end=self.series["Vazão"][simul_start:].end_time(), freq='YS'))
+                pd.date_range(start=flow_aligned.start_time(), end=flow_aligned.end_time(), freq='YS'))
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
             ax.tick_params(axis='x', labelsize=10)
             ax.tick_params(axis='y', labelsize=10)
