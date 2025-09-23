@@ -92,11 +92,10 @@ class ModelRunWindow(ctk.CTkToplevel):
             PlotWindow(self.series, self.predictions, self.simulations, self.residuals, self.losses, self.models)
             self.after(100, self.destroy)
 
-    def recursive_simulation(self, model, model_type, device=None):
+    def recursive_simulation(self, model, model_type, input_len, device=None):
         """
         Simula recursivamente, corrigindo a frequência da série 'just-in-time'.
         """
-        input_len = 24
 
         original_flow = self.series.flow
         original_covariates = self.series.prate_covariates
@@ -270,7 +269,7 @@ class ModelRunLHCWindow(ModelRunWindow):
         self.predictions["LHC"] = preds_ts
         self.residuals["LHC"] = residuals_ts
 
-        simulation_ts = self.recursive_simulation(self.model, 'lhc', self.device)
+        simulation_ts = self.recursive_simulation(self.model, 'lhc', self.input_len, self.device)
         self.simulations["LHC"] = simulation_ts
 
         self.losses["LHC"] = self.loss_tracker.losses
@@ -329,7 +328,7 @@ class ModelRunDartsWindow(ModelRunWindow):
 
         # Simulação
         simulation = self.recursive_simulation(self.model,
-                                               self.model_name.lower().replace('-', ''))  # 'n-beats' -> 'nbeats'
+                                               self.model_name.lower().replace('-', ''), self.model.input_chunk_length)
         self.simulations[self.model_name] = simulation
 
         # Resíduos
