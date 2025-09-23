@@ -8,15 +8,6 @@ from darts import TimeSeries
 from pytorch_lightning.callbacks import Callback
 
 
-class ProgressBarCallback(Callback):
-    def __init__(self, gui):
-        super().__init__()
-        self.gui = gui
-
-    def on_train_epoch_end(self, trainer, pl_module):
-        current_epoch = trainer.current_epoch
-        self.gui.update_progress(current_epoch)
-
 class LSTMModel(nn.Module):
     """Arquitetura LSTM básica usada internamente pelo LHCModel."""
     def __init__(self, input_size, hidden_size, num_layers, output_size, dropout=0.0):
