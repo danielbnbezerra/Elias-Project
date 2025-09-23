@@ -481,13 +481,13 @@ class NModelWindow(BasicWindow):
         self.random_state = 42
 
         # Input Chunk Length
-        self.label_input_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Input Chunck Length:", font=("Arial", 14))
+        self.label_input_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Input Chunk Length:", font=("Arial", 14))
         self.label_input_chunck_length.grid(row=0, column=0, padx=5, pady=5)
         self.entry_input_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_input_chunck_length.grid(row=0, column=1, padx=5, pady=5)
 
         # Output Chunk Length
-        self.label_output_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Output Chunck Length:", font=("Arial", 14))
+        self.label_output_chunck_length = ctk.CTkLabel(master=self.hiperparameter_frame, text="Output Chunk Length:", font=("Arial", 14))
         self.label_output_chunck_length.grid(row=1, column=0, padx=5, pady=5)
         self.entry_output_chunck_length = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11), state="disabled")
         self.entry_output_chunck_length.grid(row=1, column=1, padx=5, pady=5)
