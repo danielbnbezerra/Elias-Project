@@ -156,8 +156,17 @@ class BasicWindow(ctk.CTkToplevel):
         Tooltip(self.clear_button, text="Limpar todos as escolhas de hiperparâmetros.")
 
     def get_configurations(self):
-        self.get_parameters()
-        self.configurations.append({"model":self.selected_models[self.index-1]["name"],"parameters":self.parameters})
+        # self.get_parameters() é chamado AQUI.
+        if self.get_parameters():
+            # Se get_parameters() falhar e retornar False,
+            # A LINHA ABAIXO É IGNORADA!
+            self.configurations.append(
+                {"model": self.selected_models[self.index - 1]["name"], "parameters": self.parameters})
+            return True
+        else:
+            # E o código vem para cá, retornando False.
+            # A lista self.configurations não é modificada.
+            return False
 
     def next_window(self):
         # Fecha a janela atual e abre a próxima
@@ -179,16 +188,18 @@ class BasicWindow(ctk.CTkToplevel):
         self.attributes("-topmost", True)
 
     def model_run(self):
-        self.get_configurations()
-        inicial_model_run = self.configurations[0]
-        self.configurations.pop(0)
-        if inicial_model_run["model"] == "LHC":
-            ModelRunLHCWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
-        if inicial_model_run["model"] == "N-BEATS":
-            ModelRunNBEATSWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
-        if inicial_model_run["model"] == "N-HiTS":
-            ModelRunNHiTSWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
-        self.destroy()
+        if self.get_configurations():
+            inicial_model_run = self.configurations[0]
+            self.configurations.pop(0)
+            if inicial_model_run["model"] == "LHC":
+                ModelRunLHCWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
+            if inicial_model_run["model"] == "N-BEATS":
+                ModelRunNBEATSWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
+            if inicial_model_run["model"] == "N-HiTS":
+                ModelRunNHiTSWindow(inicial_model_run["parameters"], self.configurations, self.timeseries)
+            self.destroy()
+        else:
+            return False
 
 class LHCModelWindow(BasicWindow):
     def __init__(self, series, index, remaining_models, *args, **kwargs):
@@ -473,9 +484,6 @@ class NModelWindow(BasicWindow):
         self.option_save_checkpoints.set("Selecione")
         self.option_save_checkpoints.grid(row=2, column=5, padx=5, pady=5)
 
-
-        # self.bottom_page_buttons()
-
         Tooltip(self.label_input_chunck_length,text="Tamanho da entrada de dados(número).")
         Tooltip(self.label_output_chunck_length, text="Tamanho da saída de dados(número).")
         Tooltip(self.label_num_stacks, text="Quantidade de Stacks que constituem o modelo(número).")
@@ -613,22 +621,122 @@ class NBEATSModelWindow(NModelWindow):
         self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
-        self.parameters = {
-            "input_chunk_length": int(self.entry_input_chunck_length.get()),
-            "output_chunk_length": int(self.entry_output_chunck_length.get()),
-            "num_stacks": int(self.entry_num_stacks.get()),
-            "num_blocks": int(self.entry_num_blocks.get()),
-            "num_layers": int(self.entry_num_layers.get()),
-            "layer_widths": int(self.entry_layer_widths.get()),
-            "n_epochs": int(self.option_n_epochs.get()),
-            "random_state": self.random_state,
-            "dropout": float(self.entry_dropout.get()),
-            "activation": self.option_activation.get(),
-            "batch_size": int(self.option_batch_size.get()),
-            "expansion_coefficient_dim": int(self.entry_expansion_coefficient_dim.get()),
-            "save_checkpoints": self.option_save_checkpoints.get().lower()
-        }
+        try:
+            # --- Validation Stage ---
+            input_len_str = self.entry_input_chunck_length.get()
+            output_len_str = self.entry_output_chunck_length.get()
+            num_stacks_str = self.entry_num_stacks.get()
+            num_blocks_str = self.entry_num_blocks.get()
+            num_layers_str = self.entry_num_layers.get()
+            layer_widths_str = self.entry_layer_widths.get()
+            n_epochs_str = self.option_n_epochs.get()
+            dropout_str = self.entry_dropout.get()
+            activation_str =  self.option_activation.get()
+            batch_size_str = self.option_batch_size.get()
+            expansion_coefficient_dim_str = self.entry_expansion_coefficient_dim.get()
+            save_checkpoints_str = self.option_save_checkpoints.get()
 
+            input_len = int(input_len_str)
+            output_len = int(output_len_str)
+            num_stacks = int(num_stacks_str)
+            num_blocks = int(num_blocks_str)
+            num_layers = int(num_layers_str)
+            layer_widths = int(layer_widths_str)
+            n_epochs = int(n_epochs_str)
+            dropout = float(dropout_str)
+            activation = activation_str
+            batch_size = int(batch_size_str)
+            expansion_coefficient_dim = int(expansion_coefficient_dim_str)
+            save_checkpoints = save_checkpoints_str.lower()
+
+
+            if input_len < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Input Chunk Length não pode ser negativo: '{input_len_str}'")
+                return False  # Stop execution
+
+            if output_len < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Output Chunk Length não pode ser negativo: '{output_len_str}'")
+                return False  # Stop execution
+
+            if (input_len + output_len) > len(self.timeseries.valid_target):
+                messagebox.showerror("Erro de Validação",
+                                     f"A soma de Input ({input_len}) e Output ({output_len}) não pode ser maior que o tamanho da validação ({len(self.timeseries.valid_target)}).")
+                return False
+            if num_stacks < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Number of Stacks não pode ser negativo: '{num_stacks_str}'")
+                return False  # Stop execution
+
+            if num_blocks < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Number of Blocks não pode ser negativo: '{num_blocks_str}'")
+                return False  # Stop execution
+
+            if num_layers < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Number of Layers não pode ser negativo: '{num_layers_str}'")
+                return False  # Stop execution
+
+            if layer_widths < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Layer Widths não pode ser negativo: '{layer_widths_str}'")
+                return False  # Stop execution
+
+            if n_epochs < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Number of Epochs não pode ser negativo: '{n_epochs}'")
+                return False  # Stop execution
+
+            if activation not in self.activation_functions:
+                messagebox.showerror("Erro de Validação",
+                                     f"Escolha a opção em Activation Function.")
+                return False  # Stop execution
+
+            if batch_size < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Batch Size não pode ser negativo: '{batch_size_str}'")
+                return False  # Stop execution
+
+            if expansion_coefficient_dim < 0:
+                messagebox.showerror("Erro de Validação",
+                                     f"Expansion Coeff Dim não pode ser negativo: '{expansion_coefficient_dim_str}'")
+                return False  # Stop execution
+
+            if save_checkpoints not in self.option_save_checkpoints:
+                messagebox.showerror("Erro de Validação",
+                                     f"Escolha a opção em Save Checkpoints.")
+                return False  # Stop execution
+
+            # --- Parameter Assembling Stage ---
+            # This part only runs if validation passes
+            self.parameters = {
+                "input_chunk_length": input_len,
+                "output_chunk_length": output_len,
+                "num_stacks": num_stacks,
+                "num_blocks": num_blocks,
+                "num_layers": num_layers,
+                "layer_widths": layer_widths,
+                "n_epochs": n_epochs,
+                "random_state": self.random_state,
+                "dropout": dropout,
+                "activation": activation,
+                "batch_size": batch_size,
+                "expansion_coefficient_dim": expansion_coefficient_dim,
+                "save_checkpoints": save_checkpoints
+            }
+            return True  # Success
+
+        except (ValueError, TypeError):
+            # Catches errors from int() or float() if the user enters text
+            messagebox.showerror("Erro de Formato",
+                                 "Por favor, preencha todos os campos com valores numéricos válidos.")
+            return False
+        except Exception as e:
+            # General catch-all for other unexpected errors
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro: {e}")
+            return False
 
 class NHiTSModelWindow(NModelWindow):
     @staticmethod

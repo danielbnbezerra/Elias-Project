@@ -7,7 +7,7 @@ from series import *
 class Application(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Projeto Elias")
+        self.title("Elias")
         self.centralize_window()
         self.protocol("WM_DELETE_WINDOW", self.confirm_exit)
         self.create_submenu()
@@ -55,7 +55,7 @@ class Application(ctk.CTk):
         self.choose_model_button = None
 
         #Título Principal
-        self.label_title = ctk.CTkLabel(master=self.main_selected_options_frame, text="Bem vindo ao Projeto Elias.", font=("Arial", 18))
+        self.label_title = ctk.CTkLabel(master=self.main_selected_options_frame, text="Bem vindo ao Elias.", font=("Arial", 18))
         self.label_title.grid(row=0, column=0, pady=30)
 
 
@@ -193,8 +193,19 @@ SOFTWARE.""")
             parts = self.option_train_valid.get().split("/")
             if len(parts) != 2:
                 raise ValueError("Formato errado.")
-            train, valid = map(int, parts)
+            try:
+                train, valid = map(int, parts)
+            except (ValueError, AttributeError):
+                messagebox.showerror("Erro",
+                                     f"Formato inválido: '{self.option_train_valid.get()}'. Preencha no formato 'treino/validação', soma deve representar 100%. Exemplo '80/20'.")
+                return False
 
+            if train < 0 or valid < 0:
+                messagebox.showerror(
+                    "Erro",
+                    f"Não podem existir valores negativos para treino ou validação. Valor atual: {train}/{valid}."
+                )
+                return False
             # Verifica se a soma é 100
             if (train + valid) != 100:
                 messagebox.showerror(

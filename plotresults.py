@@ -14,7 +14,7 @@ import pandas as pd
 
 from darts.utils.statistics import plot_residuals_analysis, plot_acf, plot_pacf
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
@@ -626,49 +626,68 @@ if __name__ == \"__main__\":
 
     # Função que cria um PDF apenas com os gráficos criados
     # Espera receber a lista self.graphs da classe PlotWindow
+    # Supondo que esta função esteja dentro de uma classe, como no seu exemplo original.
+    # Se não estiver, remova o 'self'.
     def export_graphs_to_pdf(self, name_file='Gráficos Exportados'):
-        filename = self.get_unique_filename(name_file,'pdf')
-        c = canvas.Canvas(filename, pagesize=letter)
-        width, height = letter
-        margin = 40
-        y_position = height - margin
-        line_height = 14
-        max_img_height = 300
+        """
+        Exporta uma lista de gráficos para um arquivo PDF, com cada gráfico
+        em uma página separada e em modo paisagem.
+        """
+        filename = self.get_unique_filename(name_file, 'pdf')
+
+        # 1. Alteração: Definir a página para o modo paisagem (landscape)
+        c = canvas.Canvas(filename, pagesize=landscape(letter))
+        width, height = landscape(letter)  # Agora 'width' é a dimensão maior
+
+        margin = 50  # Um pouco mais de margem para um visual mais limpo
 
         if not self.graphs:
-            c.drawString(margin, y_position, "Nenhum gráfico para exportar.")
+            c.drawString(margin, height - margin, "Nenhum gráfico para exportar.")
             c.save()
             return filename
 
         for i, graph in enumerate(self.graphs):
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(margin, y_position, f"Gráfico {i + 1}: {graph.get('name', '')}")
-            y_position -= line_height * 2
+            # --- Configuração do Título da Página ---
+            c.setFont("Helvetica-Bold", 16)
+            # Centraliza o título no topo da página
+            title = f"Gráfico {i + 1}: {graph.get('name', '')}"
+            c.drawCentredString(width / 2, height - margin, title)
 
-            # Salvar o figure associado ao canvas em imagem temporária
+            # --- Preparação da Imagem do Gráfico ---
             fig = graph['canvas'].figure
             img_path = self.save_figure_temp(fig)
 
-            img_width = width - 2 * margin
-            # Manter proporções da imagem
+            # --- Cálculo de Dimensões para a Imagem ---
+            # Área disponível para o gráfico (considerando margens e espaço para o título)
+            available_width = width - (2 * margin)
+            available_height = height - (2 * margin) - 40  # Subtrai espaço extra para o título
+
+            # Obtém dimensões originais para manter a proporção
             fig_width, fig_height = fig.get_size_inches()
-            fig_dpi = fig.get_dpi()
-            orig_img_width = fig_width * fig_dpi
-            orig_img_height = fig_height * fig_dpi
-            scale_factor = min(img_width / orig_img_width, max_img_height / orig_img_height)
-            disp_width = orig_img_width * scale_factor
-            disp_height = orig_img_height * scale_factor
+            dpi = fig.get_dpi()
+            original_img_width = fig_width * dpi
+            original_img_height = fig_height * dpi
 
-            if y_position - disp_height < margin:
-                c.showPage()
-                y_position = height - margin
+            # Calcula o fator de escala para que a imagem caiba na área disponível
+            scale_factor = min(available_width / original_img_width, available_height / original_img_height)
 
-            c.drawImage(img_path, margin, y_position - disp_height, width=disp_width, height=disp_height)
-            y_position -= disp_height + line_height * 2
+            display_width = original_img_width * scale_factor
+            display_height = original_img_height * scale_factor
 
-            # Remover arquivo temporário
+            # --- Posicionamento e Desenho da Imagem ---
+            # Calcula a posição (x, y) para centralizar a imagem na página
+            x_pos = (width - display_width) / 2
+            y_pos = (height - display_height) / 2
+
+            c.drawImage(img_path, x_pos, y_pos, width=display_width, height=display_height)
+
+            # Remove o arquivo de imagem temporário
             os.remove(img_path)
 
+            # 2. Alteração: Finaliza a página atual e avança para a próxima
+            c.showPage()
+
+        # Salva o arquivo PDF final
         c.save()
         self.open_pdf_file(filename)
 
