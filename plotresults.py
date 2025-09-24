@@ -1,4 +1,3 @@
-import inspect
 import math
 import os
 import platform
@@ -13,6 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from darts.utils.statistics import plot_residuals_analysis, plot_acf, plot_pacf
+from fontTools.ttLib.woff2 import bboxFormat
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.utils import ImageReader
@@ -124,16 +124,22 @@ class PlotWindow(ctk.CTkToplevel):
         if selected_data_indices.get("Séries"):
             for name, series_obj in selected_data_indices["Séries"].items():
                 ax.plot(series_obj.time_index, series_obj.values(), label=name)
-
-            ax.set_xticks(
-                pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='YS'))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-            ax.tick_params(axis='x', labelsize=10)
-            ax.tick_params(axis='y', labelsize=10)
-            ax.set_xlabel('Tempo', fontsize=15)
-            ax.legend(fontsize=10, loc='best')
+            series_size = len(self.series["Vazão"])//365
+            if series_size > 5:
+                ticks = pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='YS')
+                fmt = '%Y'
+            else:
+                ticks = pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(),
+                                      freq='MS')
+                fmt = '%m/%y'
+            ax.set_xticks(ticks)
+            ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+            ax.tick_params(axis='x', labelsize=22, rotation=45)
+            ax.tick_params(axis='y', labelsize=22)
+            ax.set_xlabel('Tempo', fontsize=20)
+            ax.legend(fontsize=22, loc='best')
             ax.grid(True)
-            ax.set_title(name_entry)
+            ax.set_title(name_entry, fontsize=22)
 
         # Previsões (sempre plota flow para comparação)
         elif selected_data_indices.get("Previsões"):
@@ -143,24 +149,31 @@ class PlotWindow(ctk.CTkToplevel):
             # Para cada previsão, usa seu time_index para alinhamento correto no tempo
             for name, pred_series in selected_data_indices["Previsões"].items():
                 ax.plot(pred_series.time_index, pred_series.values(), label=f"{name} - Previsão")
-
-            ax.set_xticks(
-                pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='YS'))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-            ax.tick_params(axis='x', labelsize=10)
-            ax.tick_params(axis='y', labelsize=10)
-            ax.set_xlabel('Tempo', fontsize=15)
-            ax.set_ylabel('Vazão', fontsize=15)
-            ax.legend(fontsize=10, loc='best')
+            series_size = len(self.series["Vazão"]) // 365
+            if series_size > 5:
+                ticks = pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(),
+                                  freq='YS')
+                fmt = '%Y'
+            else:
+                ticks = pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(),
+                                  freq='MS')
+                fmt = '%m/%y'
+            ax.set_xticks(ticks)
+            ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+            ax.tick_params(axis='x', labelsize=22, rotation=45)
+            ax.tick_params(axis='y', labelsize=22)
+            ax.set_xlabel('Tempo', fontsize=20)
+            ax.set_ylabel('Vazão', fontsize=20)
+            ax.legend(fontsize=22, loc='best')
             ax.grid(True)
-            ax.set_title(name_entry)
+            ax.set_title(name_entry, fontsize=22)
 
         # Simulações
         elif selected_data_indices.get("Simulações"):
             common_index = self.series["Vazão"].time_index
             for simul_series in selected_data_indices["Simulações"].values():
                 common_index = common_index.intersection(simul_series.time_index)
-
+            size_series = len(common_index)//365
             # Plota série flow inteira com tempo original para comparação
             flow_aligned = self.series["Vazão"][common_index]
             ax.plot(flow_aligned.time_index, flow_aligned.values(), label="Série Observada")
@@ -169,29 +182,34 @@ class PlotWindow(ctk.CTkToplevel):
             for name, simul_series in selected_data_indices["Simulações"].items():
                 simul_series_aligned = simul_series[common_index]
                 ax.plot(simul_series_aligned.time_index, simul_series_aligned.values(), label=f"{name} - Simulação")
-
-            ax.set_xticks(
-                pd.date_range(start=flow_aligned.start_time(), end=flow_aligned.end_time(), freq='YS'))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-            ax.tick_params(axis='x', labelsize=10)
-            ax.tick_params(axis='y', labelsize=10)
-            ax.set_xlabel('Tempo', fontsize=15)
-            ax.set_ylabel('Vazão', fontsize=15)
-            ax.legend(fontsize=10, loc='best')
+            if size_series > 5:
+                ticks = pd.date_range(start=flow_aligned.start_time(), end=flow_aligned.end_time(), freq='YS')
+                fmt = '%Y'
+            else:
+                ticks = pd.date_range(start=flow_aligned.start_time(), end=flow_aligned.end_time(), freq='MS')
+                fmt = '%m/%y'
+            ax.set_xticks(ticks)
+            ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+            ax.tick_params(axis='x', labelsize=22, rotation=45)
+            ax.tick_params(axis='y', labelsize=22)
+            ax.set_xlabel('Tempo', fontsize=20)
+            ax.set_ylabel('Vazão', fontsize=20)
+            ax.legend(fontsize=22, loc='best')
             ax.grid(True)
-            ax.set_title(name_entry)
+            ax.set_title(name_entry, fontsize=22)
 
         # Curvas de Aprendizado
         elif selected_data_indices.get("Curvas de Aprendizado"):
             for name, loss_values in selected_data_indices["Curvas de Aprendizado"].items():
                 ax.plot(range(len(loss_values)), loss_values, label=f"{name} - Curva de Aprendizado")
-            ax.set_xlabel("Épocas", fontsize=15)
-            ax.set_ylabel("Perdas", fontsize=15)
-            ax.tick_params(axis='x', labelsize=10)
-            ax.tick_params(axis='y', labelsize=10)
-            ax.legend(fontsize=10, loc='best')
+            ax.set_xlabel("Épocas", fontsize=20)
+            ax.set_ylabel("Perdas", fontsize=20)
+            ax.tick_params(axis='x', labelsize=22, rotation=45)
+            ax.tick_params(axis='y', labelsize=22)
+            ax.legend(fontsize=22, loc='best')
             ax.grid(True)
-            ax.set_title(name_entry)
+            ax.set_title(name_entry, fontsize=22)
+
 
         # Resíduos (único selecionado)
         elif selected_data_indices.get("Resíduos"):
@@ -200,7 +218,7 @@ class PlotWindow(ctk.CTkToplevel):
                 plot_residuals_analysis(res_obj)
                 fig = plt.gcf()
                 fig.set_size_inches(8, 6)
-                fig.suptitle(f"{name} - Resíduos", fontsize=14)
+                fig.suptitle(f"{name} - Resíduos", fontsize=22)
                 canvas = FigureCanvasTkAgg(fig, master=frame)
                 canvas.draw()
                 canvas.get_tk_widget().pack(fill="both", expand=True, padx=(0,5), pady=(0,5))
@@ -541,14 +559,14 @@ if __name__ == \"__main__\":
                 plot_acf(actual_ts, max_lag=min(40, int(len(actual_ts)/4)))
                 plt.suptitle("Autocorrelação", fontsize=20)
                 plt.tight_layout()
-                plt.savefig(acf_path)
+                plt.savefig(acf_path, dpi=300, bbox_inches='tight')
                 plt.close()
 
                 plt.figure(figsize=(6, 3))
                 plot_pacf(actual_ts, max_lag=min(40, int(len(actual_ts)/4)))
                 plt.suptitle("Autocorrelação Parcial", fontsize=20)
                 plt.tight_layout()
-                plt.savefig(pacf_path)
+                plt.savefig(pacf_path, dpi=300, bbox_inches='tight')
                 plt.close()
 
                 # Escrever texto no PDF
@@ -626,7 +644,7 @@ if __name__ == \"__main__\":
     # Função para salvar figures matplotlib em imagens temporárias
     def save_figure_temp(self, fig):
         with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
-            fig.savefig(tmpfile.name, bbox_inches='tight')
+            fig.savefig(tmpfile.name, bbox_inches='tight', dpi=300)
             return tmpfile.name
 
     # Função que cria um PDF apenas com os gráficos criados
