@@ -22,12 +22,13 @@ from metrics import *
 
 
 class PlotWindow(ctk.CTkToplevel):
-    def __init__(self, series, predictions, simulations, residuals, losses, models):
+    def __init__(self, series, predictions, simulations, residuals, losses, models, all_params):
         super().__init__()
         self.title("Visualização de Resultados")
         self.grab_set()
         self.create_submenu()
         self.timeseries = series
+        self.all_params = all_params
 
         self.series = {"Precipitação":series.prate,
                        "Precipitação Acumulada 3 dias": series.prate_t_minus_3,
@@ -39,8 +40,6 @@ class PlotWindow(ctk.CTkToplevel):
         self.residuals = residuals
         self.losses = losses
         self.models = models
-        for name, simul in self.simulations.items():
-            print(name, simul)
 
         # Menu lateral
         self.menu_frame = ctk.CTkFrame(self, width=200, fg_color='#DDDDDD')
@@ -186,7 +185,7 @@ class PlotWindow(ctk.CTkToplevel):
         elif selected_data_indices.get("Curvas de Aprendizado"):
             for name, loss_values in selected_data_indices["Curvas de Aprendizado"].items():
                 ax.plot(range(len(loss_values)), loss_values, label=f"{name} - Curva de Aprendizado")
-            ax.set_xlabel("Epochs", fontsize=15)
+            ax.set_xlabel("Épocas", fontsize=15)
             ax.set_ylabel("Perdas", fontsize=15)
             ax.tick_params(axis='x', labelsize=10)
             ax.tick_params(axis='y', labelsize=10)
@@ -281,7 +280,7 @@ class PlotWindow(ctk.CTkToplevel):
                 torch.save(model.state_dict(), weights_filename)
 
                 # Parâmetros usados no modelo
-                params = getattr(self, 'params', {}).get(name, {})
+                params = self.all_params[name]
                 params_repr = repr(params)
 
                 # Script completo para o LHC, incluindo imports essenciais
@@ -446,13 +445,13 @@ if __name__ == \"__main__\":
                 with open(script_filename, "w", encoding="utf-8") as f:
                     f.write(lhc_complete_code)
 
-            elif name in ("NBEATS", "NHiTS"):
+            elif name in ("N-BEATS", "N-HiTS"):
                 # Salvar modelo DARTS
                 model.save(weights_filename)
 
 
                 # Parâmetros usados
-                params = getattr(self, 'params', {}).get(name, {})
+                params = self.all_params[name]
                 params_repr = repr(params)
 
                 # Importações necessárias para modelos DARTS

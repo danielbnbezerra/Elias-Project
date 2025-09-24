@@ -23,7 +23,7 @@ class LossTracker(Callback):
             self.losses.append(loss.item())
 
 class ModelRunWindow(ctk.CTkToplevel):
-    def __init__(self, params, configs, series=None, predictions=None, simulations=None, losses=None, models=None, residuals=None):
+    def __init__(self, params, configs, series=None, predictions=None, simulations=None, losses=None, models=None, residuals=None, all_params=None):
         super().__init__()
         self.grab_set()
         self.grid_propagate(True)
@@ -38,6 +38,7 @@ class ModelRunWindow(ctk.CTkToplevel):
         self.models = models if models is not None else {}
         self.residuals = residuals if residuals is not None else {}
         self.simulations = simulations if simulations is not None else {}
+        self.all_params = all_params if all_params is not None else {}
 
         self.device = None
         self.model = None
@@ -77,7 +78,8 @@ class ModelRunWindow(ctk.CTkToplevel):
                                      simul=self.simulations,
                                      losses=self.losses,
                                      models=self.models,
-                                     residuals=self.residuals)
+                                     residuals=self.residuals,
+                                     all_params=self.all_params)
             if next_model_run["model"] == "N-HiTS":
                 ModelRunNHiTSWindow(params=next_model_run["parameters"],
                                     configs=self.configurations,
@@ -86,10 +88,11 @@ class ModelRunWindow(ctk.CTkToplevel):
                                     simul=self.simulations,
                                     losses=self.losses,
                                     models=self.models,
-                                    residuals=self.residuals)
+                                    residuals=self.residuals,
+                                    all_params=self.all_params)
             self.after(100, self.destroy)
         else:
-            PlotWindow(self.series, self.predictions, self.simulations, self.residuals, self.losses, self.models)
+            PlotWindow(self.series, self.predictions, self.simulations, self.residuals, self.losses, self.models, self.all_params)
             self.after(100, self.destroy)
 
     def recursive_simulation(self, model, model_type, input_len, device=None):
@@ -171,11 +174,12 @@ class ModelRunWindow(ctk.CTkToplevel):
         self.geometry(f"{window_width}x{window_height}+{x}+{y} ")
 
 class ModelRunLHCWindow(ModelRunWindow):
-    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None):
-        super().__init__(params, configs, series, preds, simul, losses, models, residuals)
+    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None, all_params=None):
+        super().__init__(params, configs, series, preds, simul, losses, models, residuals, all_params)
         self.title("LHC - Executando Modelo")
         self.centralize_window()
 
+        self.all_params["LHC"] = self.params
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Tensor sets baseados em GetSeries (prep treino e validação)
@@ -242,7 +246,7 @@ class ModelRunLHCWindow(ModelRunWindow):
             self.model = LHCModel.load_from_checkpoint(checkpoint_callback.best_model_path,input_size=self.inputs.shape[2])
             self.model.to(self.device)
 
-        self.after(0, self.post_training)
+        self.after(1000, self.post_training)
 
     def post_training(self):
         n_predict = len(self.valid_target.squeeze(0))
@@ -280,13 +284,13 @@ class ModelRunLHCWindow(ModelRunWindow):
 
 class ModelRunDartsWindow(ModelRunWindow):
     def __init__(self, params, configs, series, model_class, model_name, preds=None, simul=None, losses=None,
-                 models=None, residuals=None):
-        super().__init__(params, configs, series, preds, simul, losses, models, residuals)
+                 models=None, residuals=None, all_params=None):
+        super().__init__(params, configs, series, preds, simul, losses, models, residuals,all_params)
         self.title(f"{model_name} - Executando Modelo")
         self.centralize_window()
-
         self.model_class = model_class  # Ex: NBEATSModel ou NHiTSModel
         self.model_name = model_name  # Ex: "N-BEATS" ou "N-HiTS"
+        self.all_params[self.model_name] = self.params
         self.epochs = self.params["n_epochs"]
 
         # Prepara o modelo com os callbacks
@@ -313,7 +317,7 @@ class ModelRunDartsWindow(ModelRunWindow):
                        val_past_covariates=self.series.valid_cov)
 
         # Após o fim do treinamento, agenda a execução do pós-treino na thread principal da GUI
-        self.after(0, self.post_training)
+        self.after(1000, self.post_training)
 
     def post_training(self):
 
@@ -347,7 +351,7 @@ class ModelRunDartsWindow(ModelRunWindow):
         self.after(1000, self.next_model_run)
 
 class ModelRunNBEATSWindow(ModelRunDartsWindow):
-    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None):
+    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None, all_params=None):
         super().__init__(params=params,
                          configs=configs,
                          series=series,
@@ -357,10 +361,11 @@ class ModelRunNBEATSWindow(ModelRunDartsWindow):
                          simul=simul,
                          losses=losses,
                          models=models,
-                         residuals=residuals)
+                         residuals=residuals,
+                         all_params=all_params)
 
 class ModelRunNHiTSWindow(ModelRunDartsWindow):
-    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None):
+    def __init__(self, params, configs, series, preds=None, simul=None, losses=None, models=None, residuals=None, all_params=None):
         super().__init__(params=params,
                          configs=configs,
                          series=series,
@@ -370,4 +375,5 @@ class ModelRunNHiTSWindow(ModelRunDartsWindow):
                          simul=simul,
                          losses=losses,
                          models=models,
-                         residuals=residuals)
+                         residuals=residuals,
+                         all_params=all_params)

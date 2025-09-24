@@ -197,20 +197,20 @@ SOFTWARE.""")
                 train, valid = map(int, parts)
             except (ValueError, AttributeError):
                 messagebox.showerror("Erro",
-                                     f"Formato inválido: '{self.option_train_valid.get()}'. Preencha no formato 'treino/validação', soma deve representar 100%. Exemplo '80/20'.")
+                                     f"Formato inválido: '{self.option_train_valid.get()}'. Preencha no formato 'treino/validação', soma deve representar 100%. Exemplo '80/20'.", parent=self)
                 return False
 
             if train < 0 or valid < 0:
                 messagebox.showerror(
                     "Erro",
-                    f"Não podem existir valores negativos para treino ou validação. Valor atual: {train}/{valid}."
+                    f"Não podem existir valores negativos para treino ou validação. Valor atual: {train}/{valid}.", parent=self
                 )
                 return False
             # Verifica se a soma é 100
             if (train + valid) != 100:
                 messagebox.showerror(
                     "Erro",
-                    f"A soma de treino e validação deve ser 100. Valor atual: {train}/{valid}."
+                    f"A soma de treino e validação deve ser 100. Valor atual: {train}/{valid}.", parent=self
                 )
                 return False
             train_percent = float(train) / 100
@@ -218,7 +218,7 @@ SOFTWARE.""")
 
         except (ValueError, AttributeError):
             messagebox.showerror("Erro",
-                                 f"Formato inválido: '{self.option_train_valid.get()}'. Preencha no formato 'treino/validação', soma deve representar 100%. Exemplo '80/20'.")
+                                 f"Formato inválido: '{self.option_train_valid.get()}'. Preencha no formato 'treino/validação', soma deve representar 100%. Exemplo '80/20'.", parent=self)
             return False
 
     def check_dates(self):
@@ -233,12 +233,12 @@ SOFTWARE.""")
 
             # Checa se a data inicial é menor que a final
             if date_start > date_end:
-                messagebox.showerror("Erro", "A data inicial não pode ser maior que a data final.")
+                messagebox.showerror("Erro", "A data inicial não pode ser maior que a data final.", parent=self)
                 return False
 
             # Checa se a data inicial é igual a final
             if date_start == date_end:
-                messagebox.showerror("Erro", "A data inicial não pode ser igual a data final.")
+                messagebox.showerror("Erro", "A data inicial não pode ser igual a data final.", parent=self)
                 return False
 
             # Checa se as datas estão dentro da série temporal
@@ -249,16 +249,16 @@ SOFTWARE.""")
 
             if not ((date_min_prate == date_min_flow) and (date_max_prate == date_max_flow)):
                 messagebox.showerror("Erro", f"As datas iniciais e finais ({date_min_prate.strftime('%d/%m/%Y')} - {date_max_prate.strftime('%d/%m/%Y')}) da série de precipitação"
-                                             f" não coincidem com as da série de vazão. ({date_min_flow.strftime('%d/%m/%Y')} - {date_max_flow.strftime('%d/%m/%Y')})")
+                                             f" não coincidem com as da série de vazão. ({date_min_flow.strftime('%d/%m/%Y')} - {date_max_flow.strftime('%d/%m/%Y')})", parent=self)
                 return False
 
             #Pelo menos 30 valores para as séries carregadas, correspondendo a 25 valores após criação de séries derivadas
             if not (date_min_prate <= date_start <= (date_max_prate - pd.Timedelta(days=30))):
-                messagebox.showerror("Erro", f"A data inicial da série deve estar entre {date_min_prate.strftime('%d/%m/%Y')} e {(date_max_prate- pd.Timedelta(days=30)).strftime('%d/%m/%Y')}.")
+                messagebox.showerror("Erro", f"A data inicial da série deve estar entre {date_min_prate.strftime('%d/%m/%Y')} e {(date_max_prate- pd.Timedelta(days=30)).strftime('%d/%m/%Y')}.", parent=self)
                 return False
 
             if not ((date_min_prate + pd.Timedelta(days=30)) <= date_end <= date_max_prate):
-                messagebox.showerror("Erro", f"A data final da série deve estar entre {(date_min_prate + pd.Timedelta(days=30)).strftime('%d/%m/%Y')} e {date_max_prate.strftime('%d/%m/%Y')}.")
+                messagebox.showerror("Erro", f"A data final da série deve estar entre {(date_min_prate + pd.Timedelta(days=30)).strftime('%d/%m/%Y')} e {date_max_prate.strftime('%d/%m/%Y')}.", parent=self)
                 return False
 
             self.data_intervals.append(date_start)
@@ -266,7 +266,7 @@ SOFTWARE.""")
             return True
 
         except Exception as e:
-            messagebox.showerror("Erro", f"Erro ao validar datas: {e}")
+            messagebox.showerror("Erro", f"Erro ao validar datas: {e}", parent=self)
             return False
 
     def show_parameters(self):
@@ -277,11 +277,14 @@ SOFTWARE.""")
             if selected_models:
                 # Criação da janela de parâmetros para o primeiro modelo selecionado
                 self.parameter_window(selected_models, 0)
+            else:
+                messagebox.showerror("Erro - Selecione um Modelo",
+                                     "Por favor, selecione pelo menos 1 modelo disponível.", parent=self)
 
     def data_window(self):
         def get_data_params(data_parameters):
             self.series_files = data_parameters
-            messagebox.showinfo("Sucesso!", "Arquivos Carregados.")
+            messagebox.showinfo("Sucesso!", "Arquivos Carregados.", parent=self)
             self.display_options("display")
 
         # Abre a janela de parâmetros, passando a função como callback
@@ -290,7 +293,7 @@ SOFTWARE.""")
     def parameter_window(self, selected_models, index):
         if index > len(selected_models):
             self.show_message("Modelos",
-                              "Modelos configurados com sucesso.\nComeçando treinamento.")
+                              "Modelos configurados com sucesso.\nComeçando treinamento.", parent=self)
             return
         model_name_window = selected_models[index]["window"]
         if self.new_window is None or not self.new_window.winfo_exists():

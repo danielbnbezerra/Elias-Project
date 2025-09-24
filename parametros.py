@@ -129,7 +129,7 @@ class BasicWindow(ctk.CTkToplevel):
                                                text="Configuração:",
                                                font= ("Arial", 14))
         self.label_confg_buttons.grid(row=1, column=0, padx=5, pady=5)
-        self.confgs_options = ["Opção 1", "Opção 2", "Opção 3", "Manual"]
+        self.confgs_options = ["Rápido", "Equilibrado", "Alta Qualidade", "Manual"]
         self.confgs_options = ctk.CTkOptionMenu(master=self.option_frame, values=self.confgs_options, command=self.confg_event)
         self.confgs_options.set("Selecione")
         self.confgs_options.grid(row=2, column=0, padx=5, pady=5)
@@ -156,8 +156,6 @@ class BasicWindow(ctk.CTkToplevel):
 
     def get_configurations(self):
         if self.get_parameters():
-            for name, value in self.parameters.items():
-                print(name, value, type(value))
             self.configurations.append(
                 {"model": self.selected_models[self.index - 1]["name"], "parameters": self.parameters})
             return True
@@ -321,46 +319,46 @@ class LHCModelWindow(BasicWindow):
         self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice):
-        if choice == 'Opção 1':
+        if choice == 'Rápido':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_length.insert(0, "1")
+            self.entry_input_length.insert(0, "15")
             self.entry_output_length.insert(0, "7")
             self.entry_hidden_size.insert(0,"32")
             self.entry_num_layers.insert(0, "1")
-            self.entry_dropout.insert(0, "0.0")
+            self.entry_dropout.insert(0, "0.3")
             self.entry_learning_rate.insert(0,"0.01")
-            self.option_batch_size.set("32")
+            self.option_batch_size.set("128")
             self.option_n_epochs.set("100")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
-        if choice == 'Opção 2':
+        if choice == 'Equilibrado':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_length.insert(0, "1")
+            self.entry_input_length.insert(0, "90")
             self.entry_output_length.insert(0, "7")
-            self.entry_hidden_size.insert(0, "32")
-            self.entry_num_layers.insert(0, "1")
-            self.entry_dropout.insert(0, "0.0")
-            self.entry_learning_rate.insert(0, "0.01")
-            self.option_batch_size.set("32")
+            self.entry_hidden_size.insert(0, "64")
+            self.entry_num_layers.insert(0, "2")
+            self.entry_dropout.insert(0, "0.1")
+            self.entry_learning_rate.insert(0, "0.001")
+            self.option_batch_size.set("64")
             self.option_n_epochs.set("100")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
-        if choice == 'Opção 3':
+        if choice == 'Alta Qualidade':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_length.insert(0, "1")
+            self.entry_input_length.insert(0, "365")
             self.entry_output_length.insert(0, "7")
-            self.entry_hidden_size.insert(0, "32")
-            self.entry_num_layers.insert(0, "1")
-            self.entry_dropout.insert(0, "0.0")
-            self.entry_learning_rate.insert(0, "0.01")
+            self.entry_hidden_size.insert(0, "128")
+            self.entry_num_layers.insert(0, "3")
+            self.entry_dropout.insert(0, "0.1")
+            self.entry_learning_rate.insert(0, "0.0001")
             self.option_batch_size.set("32")
             self.option_n_epochs.set("100")
             self.option_save_checkpoints.set("True")
@@ -369,7 +367,6 @@ class LHCModelWindow(BasicWindow):
         if choice == 'Manual':
             self.clear_button.configure(state="normal")
             self.enable_parameters()
-            self.clean_parameters()
 
     def clean_parameters(self):
         self.entry_input_length.delete(0, "end")
@@ -406,18 +403,18 @@ class LHCModelWindow(BasicWindow):
         }
         for field_name, value in all_fields.items():
             if not value:
-                messagebox.showerror("Erro de Validação", f"O campo '{field_name}' não pode estar vazio.")
+                messagebox.showerror("Erro de Validação", f"O campo '{field_name}' não pode estar vazio.", parent=self)
                 return False
 
         # Verifica os campos de seleção
         if batch_size_str == "Selecione":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione um 'Batch Size'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione um 'Batch Size'.", parent=self)
             return False
         if n_epochs_str == "Selecione/Digite":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o 'Num Epochs'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o 'Num Epochs'.", parent=self)
             return False
         if save_checkpoints_str == "Selecione":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione uma opção em 'Save Checkpoints'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione uma opção em 'Save Checkpoints'.", parent=self)
             return False
 
         # --- Estágio de Conversão e Lógica ---
@@ -435,20 +432,20 @@ class LHCModelWindow(BasicWindow):
 
             # Validações lógicas
             if input_len <= 0 or output_len <= 0 or hidden_size <= 0 or num_layers <= 0 or batch_size <= 0 or n_epochs <= 0:
-                messagebox.showerror("Erro de Validação", "Valores de parâmetros numéricos devem ser maiores que zero.")
+                messagebox.showerror("Erro de Validação", "Valores de parâmetros numéricos devem ser maiores que zero.", parent=self)
                 return False
 
             if not (0.0 <= dropout < 1.0):
-                messagebox.showerror("Erro de Validação", "O valor de 'Dropout' deve estar entre 0.0 e 0.99.")
+                messagebox.showerror("Erro de Validação", "O valor de 'Dropout' deve estar entre 0.0 e 0.99.", parent=self)
                 return False
 
-            if learning_rate <= 0:
-                messagebox.showerror("Erro de Validação", "O 'Learning Rate' deve ser maior que zero.")
+            if not (1e-6 <= learning_rate < 1):
+                messagebox.showerror("Erro de Validação", "O 'Learning Rate' deve estar entre 1e-6 e 0.99.", parent=self)
                 return False
 
             if (input_len + output_len) > len(self.timeseries.valid_target):
                 messagebox.showerror("Erro de Validação",
-                                     f"A soma de Input ({input_len}) e Output ({output_len}) não pode ser maior que o tamanho da validação ({len(self.timeseries.valid_target)}).")
+                                     f"A soma de Input ({input_len}) e Output ({output_len}) não pode ser maior que o tamanho da validação ({len(self.timeseries.valid_target)}).", parent=self)
                 return False
 
             # --- Estágio de Montagem dos Parâmetros ---
@@ -467,10 +464,10 @@ class LHCModelWindow(BasicWindow):
             return True  # Sucesso
 
         except (ValueError, TypeError):
-            messagebox.showerror("Erro de Formato", "Por favor, insira apenas valores numéricos válidos nos campos.")
+            messagebox.showerror("Erro de Formato", "Por favor, insira apenas valores numéricos válidos nos campos.", parent=self)
             return False
         except Exception as e:
-            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro: {e}")
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro: {e}", parent=self)
             return False
 
 class NModelWindow(BasicWindow):
@@ -619,64 +616,63 @@ class NBEATSModelWindow(NModelWindow):
         self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice): #A DEFINIR ESCOLHAS DE VALORES AINDA
-        if choice == 'Opção 1':
+        if choice == 'Rápido':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0,"18")
-            self.entry_output_chunck_length.insert(0,"6")
-            self.entry_num_stacks.insert(0,"3")
-            self.entry_num_blocks.insert(0,"4")
-            self.entry_num_layers.insert(0,"3")
-            self.entry_layer_widths.insert(0,"5")
-            self.entry_dropout.insert(0,"0.3")
+            self.entry_input_chunck_length.insert(0,"15")
+            self.entry_output_chunck_length.insert(0,"7")
+            self.entry_num_stacks.insert(0,"2")
+            self.entry_num_blocks.insert(0,"1")
+            self.entry_num_layers.insert(0,"2")
+            self.entry_layer_widths.insert(0,"64")
+            self.entry_dropout.insert(0,"0.2")
             self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
+            self.option_batch_size.set("128")
             self.option_n_epochs.set("100")
             self.entry_expansion_coefficient_dim.insert(0,"5")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
-        if choice == 'Opção 2':
+        if choice == 'Equilibrado':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "18")
-            self.entry_output_chunck_length.insert(0, "6")
-            self.entry_num_stacks.insert(0, "3")
-            self.entry_num_blocks.insert(0, "4")
-            self.entry_num_layers.insert(0, "3")
-            self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "0.3")
+            self.entry_input_chunck_length.insert(0, "90")
+            self.entry_output_chunck_length.insert(0, "7")
+            self.entry_num_stacks.insert(0, "2")
+            self.entry_num_blocks.insert(0, "3")
+            self.entry_num_layers.insert(0, "4")
+            self.entry_layer_widths.insert(0, "256")
+            self.entry_dropout.insert(0, "0.1")
             self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
-            self.option_n_epochs.set("750")
-            self.entry_expansion_coefficient_dim.insert(0,"3")
+            self.option_batch_size.set("64")
+            self.option_n_epochs.set("100")
+            self.entry_expansion_coefficient_dim.insert(0,"5")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
-        if choice == 'Opção 3':
+        if choice == 'Alta Qualidade':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "18")
-            self.entry_output_chunck_length.insert(0, "6")
-            self.entry_num_stacks.insert(0, "3")
-            self.entry_num_blocks.insert(0, "4")
-            self.entry_num_layers.insert(0, "3")
+            self.entry_input_chunck_length.insert(0, "365")
+            self.entry_output_chunck_length.insert(0, "7")
+            self.entry_num_stacks.insert(0, "30")
+            self.entry_num_blocks.insert(0, "1")
+            self.entry_num_layers.insert(0, "512")
             self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "0.3")
+            self.entry_dropout.insert(0, "0.1")
             self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
-            self.option_n_epochs.set("1000")
-            self.entry_expansion_coefficient_dim.insert(0,"7")
+            self.option_batch_size.set("32")
+            self.option_n_epochs.set("100")
+            self.entry_expansion_coefficient_dim.insert(0,"5")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Manual':
             self.clear_button.configure(state="normal")
             self.enable_parameters()
-            self.clean_parameters()
 
     def clean_parameters(self):
         self.entry_input_chunck_length.delete(0,"end")
@@ -723,23 +719,22 @@ class NBEATSModelWindow(NModelWindow):
         }
 
         for field_name, value in all_fields.items():
-            print(field_name, value, type(value))
             if not value:  # Checa se o campo está vazio
-                messagebox.showerror("Erro de Validação", f"O campo '{field_name}' não pode estar vazio.")
+                messagebox.showerror("Erro de Validação", f"O campo '{field_name}' não pode estar vazio.", parent=self)
                 return False
 
         # Verifica os campos de seleção
         if activation_str == "Selecione":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione uma 'Activation Function'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione uma 'Activation Function'.", parent=self)
             return False
         if batch_size_str == "Selecione":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione um 'Batch Size'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione um 'Batch Size'.", parent=self)
             return False
         if n_epochs_str == "Selecione/Digite":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o número de 'Epochs'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o número de 'Epochs'.", parent=self)
             return False
         if save_checkpoints_str == "Selecione":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione uma opção em 'Save Checkpoints'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione uma opção em 'Save Checkpoints'.", parent=self)
             return False
 
         # --- Estágio de Conversão e Lógica ---
@@ -755,61 +750,61 @@ class NBEATSModelWindow(NModelWindow):
             dropout = float(dropout_str)
             batch_size = int(batch_size_str)
             expansion_coefficient_dim = int(expansion_coefficient_dim_str)
-            save_checkpoints = save_checkpoints_str == 'true'  # Converte para boolean
+            save_checkpoints = save_checkpoints_str == 'True'  # Converte para boolean
 
             # ... (O resto da sua lógica de validação de valores negativos, etc., vai aqui) ...
             # Exemplo:
             if input_len < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Input Chunk Length não pode ser negativo: '{input_len_str}'")
+                                     f"Input Chunk Length não pode ser negativo: '{input_len_str}'", parent=self)
                 return False
             if input_len < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Input Chunk Length não pode ser negativo: '{input_len_str}'")
+                                     f"Input Chunk Length não pode ser negativo: '{input_len_str}'", parent=self)
                 return False  # Stop execution
 
             if output_len < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Output Chunk Length não pode ser negativo: '{output_len_str}'")
+                                     f"Output Chunk Length não pode ser negativo: '{output_len_str}'", parent=self)
                 return False  # Stop execution
 
             if (input_len + output_len) > len(self.timeseries.valid_target):
                 messagebox.showerror("Erro de Validação",
-                                     f"A soma de Input ({input_len}) e Output ({output_len}) não pode ser maior que o tamanho da validação ({len(self.timeseries.valid_target)}).")
+                                     f"A soma de Input ({input_len}) e Output ({output_len}) não pode ser maior que o tamanho da validação ({len(self.timeseries.valid_target)}).", parent=self)
                 return False
             if num_stacks < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Number of Stacks não pode ser negativo: '{num_stacks_str}'")
+                                     f"Number of Stacks não pode ser negativo: '{num_stacks_str}'", parent=self)
                 return False  # Stop execution
 
             if num_blocks < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Number of Blocks não pode ser negativo: '{num_blocks_str}'")
+                                     f"Number of Blocks não pode ser negativo: '{num_blocks_str}'", parent=self)
                 return False  # Stop execution
 
             if num_layers < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Number of Layers não pode ser negativo: '{num_layers_str}'")
+                                     f"Number of Layers não pode ser negativo: '{num_layers_str}'", parent=self)
                 return False  # Stop execution
 
             if layer_widths < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Layer Widths não pode ser negativo: '{layer_widths_str}'")
+                                     f"Layer Widths não pode ser negativo: '{layer_widths_str}'", parent=self)
                 return False  # Stop execution
 
             if n_epochs < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Number of Epochs não pode ser negativo: '{n_epochs}'")
+                                     f"Number of Epochs não pode ser negativo: '{n_epochs}'", parent=self)
                 return False  # Stop execution
 
             if batch_size < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Batch Size não pode ser negativo: '{batch_size_str}'")
+                                     f"Batch Size não pode ser negativo: '{batch_size_str}'", parent=self)
                 return False  # Stop execution
 
             if expansion_coefficient_dim < 0:
                 messagebox.showerror("Erro de Validação",
-                                     f"Expansion Coeff Dim não pode ser negativo: '{expansion_coefficient_dim_str}'")
+                                     f"Expansion Coeff Dim não pode ser negativo: '{expansion_coefficient_dim_str}'", parent=self)
                 return False  # Stop execution
 
             # --- Estágio de Montagem dos Parâmetros ---
@@ -826,17 +821,18 @@ class NBEATSModelWindow(NModelWindow):
                 "activation": activation_str,
                 "batch_size": batch_size,
                 "expansion_coefficient_dim": expansion_coefficient_dim,
-                "save_checkpoints": save_checkpoints
+                "save_checkpoints": save_checkpoints,
+                "generic_architecture": True
             }
 
             return True  # Sucesso
 
         except (ValueError, TypeError):
             messagebox.showerror("Erro de Formato",
-                                 "Por favor, insira apenas valores numéricos válidos nos campos.")
+                                 "Por favor, insira apenas valores numéricos válidos nos campos.", parent=self)
             return False
         except Exception as e:
-            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro: {e}")
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro: {e}", parent=self)
             return False
 
 class NHiTSModelWindow(NModelWindow):
@@ -855,25 +851,28 @@ class NHiTSModelWindow(NModelWindow):
         # Pooling Kernel Sizes
         self.label_pooling_kernel_sizes = ctk.CTkLabel(master=self.hiperparameter_frame, text="Pooling Kernel Sizes:", font=("Arial", 14))
         self.label_pooling_kernel_sizes.grid(row=0, column=4, padx=5, pady=5)
-        self.pooling_kernel_sizes = ["Nenhum","[3, 5]","[5, 7, 9]","[3, 3, 3]"]
-        self.options_pooling_kernel_sizes = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.pooling_kernel_sizes, state="disabled")
-        self.options_pooling_kernel_sizes.set("Selecione/Digite")
-        self.options_pooling_kernel_sizes.grid(row=0, column=5, padx=5, pady=5)
+        self.entry_pooling_kernel_size = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
+                                                            state="disabled")
+        self.entry_pooling_kernel_size.grid(row=0, column=5, padx=5, pady=5)
 
         # Interpolation Mode
         self.label_n_freq_downsample = ctk.CTkLabel(master=self.hiperparameter_frame, text="Num Freq Downsample:", font=("Arial", 14))
         self.label_n_freq_downsample.grid(row=1, column=4, padx=5, pady=5)
-        self.n_freq_downsample = ["Nenhum","[1, 2]","[1, 1, 2]","[1, 2, 4]"]
-        self.option_n_freq_downsample = ctk.CTkComboBox(master=self.hiperparameter_frame, values=self.n_freq_downsample, state="disabled")
-        self.option_n_freq_downsample.set("Selecione/Digite")
-        self.option_n_freq_downsample.grid(row=1, column=5, padx=5, pady=5)
 
-        Tooltip(self.label_pooling_kernel_sizes, text="Tamanhos dos kernels usados nas operações de pooling dentro do modelo. Pooling é uma operação\n"
+        self.entry_n_freq_downsample = ctk.CTkEntry(master=self.hiperparameter_frame, font=("Arial", 11),
+                                                            state="disabled")
+        self.entry_n_freq_downsample.grid(row=1, column=5, padx=5, pady=5)
+
+
+        Tooltip(self.label_pooling_kernel_sizes, text=f"Tamanhos dos kernels usados nas operações de pooling dentro do modelo. Pooling é uma operação\n"
                                                       "que reduz a dimensão temporal da série mantendo as características mais importantes.\n"
-                                                      "Formato tupla[tupla[inteiro]]. Recomenda-se valores de 2 a 10.")
+                                                   "O formato precisa ser uma tupla de num_stacks tuplas, com cada tupla interna contendo num_blocks elementos.\n"
+                                                      "Formato tupla[tupla[inteiro]]. Recomenda-se valores de 1 (2\u00B9) a 8 (2\u00B3). Ex: (8,4,1), ((8,4,2)(2,1,1))")
         Tooltip(self.label_n_freq_downsample, text="Lista de inteiros que definem o fator de downsampling aplicado na frequência da série para diferentes\n"
                                                    "stacks do modelo, basicamente reduzindo a resolução temporal dos dados processados em cada nível.\n"
-                                                   "Formato tupla[tupla[inteiro]]. Recomenda-se valores de 1 a 4.")
+                                                   "O formato precisa ser uma tupla de num_stacks tuplas, com cada tupla interna contendo num_blocks elementos.\n"
+                                                   "Formato tupla[tupla[inteiro]]. Recomenda-se valores de 1 (2\u00B9) a 4 (2\u0074) e múltiplos de 2.\n "
+                                                   "Ex: (4,2,1), ((4,2,2)(2,1,1))")
 
     def disable_parameters(self):
         self.entry_input_chunck_length.configure(state="disabled")
@@ -886,8 +885,8 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.configure(state="disabled")
         self.option_batch_size.configure(state="disabled")
         self.option_n_epochs.configure(state="disabled")
-        self.options_pooling_kernel_sizes.configure(state="disabled")
-        self.option_n_freq_downsample.configure(state="disabled")
+        self.entry_pooling_kernel_size.configure(state="disabled")
+        self.entry_n_freq_downsample.configure(state="disabled")
         self.option_save_checkpoints.configure(state="disabled")
 
     def enable_parameters(self):
@@ -901,72 +900,71 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.configure(state="normal")
         self.option_batch_size.configure(state="normal")
         self.option_n_epochs.configure(state="normal")
-        self.options_pooling_kernel_sizes.configure(state="normal")
-        self.option_n_freq_downsample.configure(state="normal")
+        self.entry_pooling_kernel_size.configure(state="normal")
+        self.entry_n_freq_downsample.configure(state="normal")
         self.option_save_checkpoints.configure(state="normal")
 
     def confg_event(self, choice):  # A DEFINIR ESCOLHAS DE VALORES AINDA
-        if choice == 'Opção 1':
+        if choice == 'Rápido':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "18")
-            self.entry_output_chunck_length.insert(0, "6")
-            self.entry_num_stacks.insert(0, "3")
-            self.entry_num_blocks.insert(0, "4")
-            self.entry_num_layers.insert(0, "3")
-            self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "0.3")
+            self.entry_input_chunck_length.insert(0, "15")
+            self.entry_output_chunck_length.insert(0, "7")
+            self.entry_num_stacks.insert(0, "2")
+            self.entry_num_blocks.insert(0, "1")
+            self.entry_num_layers.insert(0, "2")
+            self.entry_layer_widths.insert(0, "256")
+            self.entry_dropout.insert(0, "0.2")
             self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
+            self.option_batch_size.set("128")
             self.option_n_epochs.set("100")
-            self.options_pooling_kernel_sizes.set("Nenhum")
-            self.option_n_freq_downsample.set("Nenhum")
+            self.entry_pooling_kernel_size.insert(0,"((4,), (1,))")
+            self.entry_n_freq_downsample.insert(0,"((4,), (1,))")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
-        if choice == 'Opção 2':
+        if choice == 'Equilibrado':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "18")
-            self.entry_output_chunck_length.insert(0, "6")
+            self.entry_input_chunck_length.insert(0, "90")
+            self.entry_output_chunck_length.insert(0, "7")
             self.entry_num_stacks.insert(0, "3")
-            self.entry_num_blocks.insert(0, "4")
-            self.entry_num_layers.insert(0, "3")
-            self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "0.3")
+            self.entry_num_blocks.insert(0, "2")
+            self.entry_num_layers.insert(0, "4")
+            self.entry_layer_widths.insert(0, "512")
+            self.entry_dropout.insert(0, "0.1")
             self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
-            self.option_n_epochs.set("750")
-            self.options_pooling_kernel_sizes.set("[3, 5]")
-            self.option_n_freq_downsample.set("[1, 2]")
+            self.option_batch_size.set("64")
+            self.option_n_epochs.set("100")
+            self.entry_pooling_kernel_size.insert(0,"((4, 2), (2, 1), (1, 1))")
+            self.entry_n_freq_downsample.insert(0, "((4, 2), (2, 1), (1, 1))")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
-        if choice == 'Opção 3':
+        if choice == 'Alta Qualidade':
             self.clear_button.configure(state="disabled")
             self.enable_parameters()
             self.clean_parameters()
-            self.entry_input_chunck_length.insert(0, "18")
-            self.entry_output_chunck_length.insert(0, "6")
-            self.entry_num_stacks.insert(0, "3")
-            self.entry_num_blocks.insert(0, "4")
-            self.entry_num_layers.insert(0, "3")
-            self.entry_layer_widths.insert(0, "5")
-            self.entry_dropout.insert(0, "0.3")
+            self.entry_input_chunck_length.insert(0, "365")
+            self.entry_output_chunck_length.insert(0, "7")
+            self.entry_num_stacks.insert(0, "4")
+            self.entry_num_blocks.insert(0, "3")
+            self.entry_num_layers.insert(0, "4")
+            self.entry_layer_widths.insert(0, "512")
+            self.entry_dropout.insert(0, "0.1")
             self.option_activation.set("ReLU")
-            self.option_batch_size.set("16")
-            self.option_n_epochs.set("1000")
-            self.options_pooling_kernel_sizes.set("[3, 3, 3]")
-            self.option_n_freq_downsample.set("[1, 2, 4]")
+            self.option_batch_size.set("32")
+            self.option_n_epochs.set("100")
+            self.entry_pooling_kernel_size.insert(0,"((2, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1))")
+            self.entry_n_freq_downsample.insert(0,"((2, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1))")
             self.option_save_checkpoints.set("True")
             self.disable_parameters()
 
         if choice == 'Manual':
             self.clear_button.configure(state="normal")
             self.enable_parameters()
-            self.clean_parameters()
 
     def clean_parameters(self):
         self.entry_input_chunck_length.delete(0,"end")
@@ -979,8 +977,8 @@ class NHiTSModelWindow(NModelWindow):
         self.option_activation.set("Selecione")
         self.option_batch_size.set("Selecione")
         self.option_n_epochs.set("Selecione/Digite")
-        self.options_pooling_kernel_sizes.set("Selecione/Digite")
-        self.option_n_freq_downsample.set("Selecione/Digite")
+        self.entry_pooling_kernel_size.delete(0,"end")
+        self.entry_n_freq_downsample.delete(0,"end")
         self.option_save_checkpoints.set("Selecione")
 
     def get_parameters(self):
@@ -995,8 +993,8 @@ class NHiTSModelWindow(NModelWindow):
         activation_str = self.option_activation.get()
         batch_size_str = self.option_batch_size.get()
         n_epochs_str = self.option_n_epochs.get()
-        pooling_kernel_sizes_str = self.options_pooling_kernel_sizes.get()
-        n_freq_downsample_str = self.option_n_freq_downsample.get()
+        pooling_kernel_sizes_str = self.entry_pooling_kernel_size.get()
+        n_freq_downsample_str = self.entry_n_freq_downsample.get()
         save_checkpoints_str = self.option_save_checkpoints.get()
 
         # --- Estágio de Validação (Antes de converter) ---
@@ -1011,27 +1009,27 @@ class NHiTSModelWindow(NModelWindow):
         }
         for field_name, value in all_fields.items():
             if not value:
-                messagebox.showerror("Erro de Validação", f"O campo '{field_name}' não pode estar vazio.")
+                messagebox.showerror("Erro de Validação", f"O campo '{field_name}' não pode estar vazio.", parent=self)
                 return False
 
         # Verifica os campos de seleção
         if activation_str == "Selecione":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione uma 'Activation Function'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione uma 'Activation Function'.", parent=self)
             return False
         if batch_size_str == "Selecione":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione um 'Batch Size'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione um 'Batch Size'.", parent=self)
             return False
         if n_epochs_str == "Selecione/Digite":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o número de 'Epochs'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o número de 'Epochs'.", parent=self)
             return False
         if pooling_kernel_sizes_str == "Selecione/Digite":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o 'Pooling Kernel Sizes'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o 'Pooling Kernel Sizes'.", parent=self)
             return False
         if n_freq_downsample_str == "Selecione/Digite":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o 'Num Freq Downsample'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione ou digite o 'Num Freq Downsample'.", parent=self)
             return False
         if save_checkpoints_str == "Selecione":
-            messagebox.showerror("Erro de Validação", "Por favor, selecione uma opção em 'Save Checkpoints'.")
+            messagebox.showerror("Erro de Validação", "Por favor, selecione uma opção em 'Save Checkpoints'.", parent=self)
             return False
 
         # --- Estágio de Conversão e Lógica ---
@@ -1047,32 +1045,40 @@ class NHiTSModelWindow(NModelWindow):
             n_epochs = int(n_epochs_str)
             save_checkpoints = save_checkpoints_str == 'True'
 
-            pooling_kernel_sizes = self.get_option(pooling_kernel_sizes_str)
-            if pooling_kernel_sizes is None and pooling_kernel_sizes_str.lower() != 'nenhum':
-                messagebox.showerror("Erro de Formato",
-                                     f"Formato inválido para 'Pooling Kernel Sizes': {pooling_kernel_sizes_str}")
-                return False
-
-            n_freq_downsample = self.get_option(n_freq_downsample_str)
-            if n_freq_downsample is None and n_freq_downsample_str.lower() != 'nenhum':
-                messagebox.showerror("Erro de Formato",
-                                     f"Formato inválido para 'Num Freq Downsample': {n_freq_downsample_str}")
-                return False
 
             # Validações lógicas
             if any(v <= 0 for v in
                    [input_len, output_len, num_stacks, num_blocks, num_layers, layer_widths, batch_size, n_epochs]):
-                messagebox.showerror("Erro de Validação", "Valores de parâmetros numéricos devem ser maiores que zero.")
+                messagebox.showerror("Erro de Validação", "Valores de parâmetros numéricos devem ser maiores que zero.", parent=self)
                 return False
 
             if not (0.0 <= dropout < 1.0):
-                messagebox.showerror("Erro de Validação", "O valor de 'Dropout' deve estar entre 0.0 e 0.99.")
+                messagebox.showerror("Erro de Validação", "O valor de 'Dropout' deve estar entre 0.0 e 0.99.", parent=self)
                 return False
 
             if (input_len + output_len) > len(self.timeseries.valid_target):
                 messagebox.showerror("Erro de Validação",
-                                     f"A soma de Input ({input_len}) e Output ({output_len}) não pode ser maior que o tamanho da validação ({len(self.timeseries.valid_target)}).")
+                                     f"A soma de Input ({input_len}) e Output ({output_len}) não pode ser maior que o tamanho da validação ({len(self.timeseries.valid_target)}).", parent=self)
                 return False
+
+            # Agora, valide os parâmetros complexos
+            is_valid_pooling, msg_pooling = self.validar_parametro_nhits(
+                pooling_kernel_sizes_str, num_stacks, num_blocks, "pooling_kernel_sizes"
+            )
+            if not is_valid_pooling:
+                messagebox.showerror("Erro de Validação", msg_pooling, parent=self)
+                return False
+
+            is_valid_freq, msg_freq = self.validar_parametro_nhits(
+                n_freq_downsample_str, num_stacks, num_blocks, "n_freq_downsample"
+            )
+            if not is_valid_freq:
+                messagebox.showerror("Erro de Validação", msg_freq, parent=self)
+                return False
+
+            # Se a validação passou, converta os valores de string para tupla
+            pooling_kernel_sizes = eval(pooling_kernel_sizes_str)
+            n_freq_downsample = eval(n_freq_downsample_str)
 
             # --- Estágio de Montagem dos Parâmetros ---
             self.parameters = {
@@ -1094,12 +1100,40 @@ class NHiTSModelWindow(NModelWindow):
             return True  # Sucesso
 
         except (ValueError, TypeError):
-            messagebox.showerror("Erro de Formato", "Por favor, insira apenas valores numéricos válidos nos campos.")
+            messagebox.showerror("Erro de Formato", "Por favor, insira apenas valores numéricos válidos nos campos.", parent=self)
             return False
         except Exception as e:
-            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro: {e}")
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro: {e}", parent=self)
             return False
 
+    def validar_parametro_nhits(self, param_value_str: str, num_stacks: int, num_blocks: int, param_name: str) -> (bool, str):
+        try:
+            param_value = eval(param_value_str)
+
+            if not isinstance(param_value, tuple):
+                return False, f"O valor de '{param_name}' deve ser uma tupla. Ex: ((8,), (4,))."
+
+            if len(param_value) != num_stacks:
+                return False, f"O número de tuplas em '{param_name}' ({len(param_value)}) deve ser igual a num_stacks ({num_stacks})."
+
+            for i, inner_tuple in enumerate(param_value):
+                if not isinstance(inner_tuple, tuple):
+                    return False, f"O elemento {i+1} de '{param_name}' deve ser uma tupla."
+
+                if len(inner_tuple) != num_blocks:
+                    return False, f"A tupla interna {i+1} em '{param_name}' tem {len(inner_tuple)} elementos, mas deveria ter num_layers ({num_blocks})."
+
+                for val in inner_tuple:
+                    if not isinstance(val, int) or val < 1:
+                        return False, f"Todos os valores em '{param_name}' devem ser inteiros maiores ou iguais a 1. Valor encontrado: {val}."
+
+        except (SyntaxError, NameError):
+            return False, f"O formato de '{param_name}' é inválido. Use o formato de tupla de tuplas. Ex: ((2, 1), (2, 1))."
+        except Exception as e:
+            return False, f"Um erro inesperado ocorreu ao validar '{param_name}': {e}"
+
+        # Se todas as checagens passaram
+        return True, ""
 
 class DataWindow(ctk.CTkToplevel):
     def __init__(self, master, callback=None):
@@ -1170,10 +1204,10 @@ class DataWindow(ctk.CTkToplevel):
     def save_parameters(self):
         try:
             if not self.prate_file:
-                messagebox.showerror("Erro - Ausência de Precipitação", "Por favor, selecione um arquivo .csv contendo a precipitação.")
+                messagebox.showerror("Erro - Ausência de Precipitação", "Por favor, selecione um arquivo .csv contendo a precipitação.", parent=self)
                 return
             if not self.flow_file:
-                messagebox.showerror("Erro - Ausência de Vazão", "Por favor, selecione um arquivo .csv contendo a vazão.")
+                messagebox.showerror("Erro - Ausência de Vazão", "Por favor, selecione um arquivo .csv contendo a vazão.", parent=self)
                 return
 
             params = {
@@ -1182,7 +1216,7 @@ class DataWindow(ctk.CTkToplevel):
             }
 
         except ValueError:
-            messagebox.showerror("Erro", "Envie os arquivos necessários!")
+            messagebox.showerror("Erro", "Envie os arquivos necessários!", parent=self)
             return
 
         # Retorna os valores para a Application via callback
