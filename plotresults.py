@@ -530,43 +530,63 @@ if __name__ == \"__main__\":
 
         for idx, (model_name, predicted_ts) in enumerate(self.predictions.items()):
             actual_ts = self.timeseries.valid_target
+            original_ts= self.timeseries.flow
+            simul_ts = self.simulations[model_name]
 
-            actual = actual_ts.values().flatten()
+            original = original_ts.values().flatten()
+            simul = simul_ts.values().flatten()
 
             rmse_value = rmse(actual_ts, predicted_ts)
             mae_value = mae(actual_ts, predicted_ts)
             nse_value = nse(actual_ts, predicted_ts)
             kge_value = kge(actual_ts, predicted_ts)
 
-            #Gerar mk da simulação também
-            mk_result = mann_kendall_test(actual)
+            mk_result_original = mann_kendall_test(original)
+            mk_result_simul = mann_kendall_test(simul)
 
             dagostino_result = dagostino_k_squared_test(self.residuals[model_name])
             anderson_result = anderson_darling_test(self.residuals[model_name])
             shapiro_result = shapiro_wilk_test(self.residuals[model_name])
 
-            #Gerar da simulação também
-            adf_result = adf_test(actual)
-            kpss_result = kpss_test(actual)
+            adf_original = adf_test(original)
+            kpss_original = kpss_test(original)
+            adf_simul = adf_test(simul)
+            kpss_simul = kpss_test(simul)
 
             #Gerar da série de entrada para comparar
             # Gerar gráficos ACF e PACF e salvar imagens temporárias
             with tempfile.TemporaryDirectory() as tmpdir:
-                acf_path = os.path.join(tmpdir, "acf.png")
-                pacf_path = os.path.join(tmpdir, "pacf.png")
+                acf_path_original = os.path.join(tmpdir, "acf_original.png")
+                pacf_path_original = os.path.join(tmpdir, "pacf_original.png")
+                acf_path_simul = os.path.join(tmpdir, "acf_simul.png")
+                pacf_path_simul = os.path.join(tmpdir, "pacf_simul.png")
 
                 plt.figure(figsize=(6, 3))
-                plot_acf(actual_ts, max_lag=min(40, int(len(actual_ts)/4)))
-                plt.suptitle("Autocorrelação", fontsize=20)
+                plot_acf(original_ts, max_lag=min(40, int(len(original_ts)/4)))
+                plt.suptitle("Autocorrelação Observação", fontsize=20)
                 plt.tight_layout()
-                plt.savefig(acf_path, dpi=300, bbox_inches='tight')
+                plt.savefig(acf_path_original, dpi=300, bbox_inches='tight')
                 plt.close()
 
                 plt.figure(figsize=(6, 3))
-                plot_pacf(actual_ts, max_lag=min(40, int(len(actual_ts)/4)))
-                plt.suptitle("Autocorrelação Parcial", fontsize=20)
+                plot_acf(simul_ts, max_lag=min(40, int(len(simul_ts) / 4)))
+                plt.suptitle("Autocorrelação Simulação", fontsize=20)
                 plt.tight_layout()
-                plt.savefig(pacf_path, dpi=300, bbox_inches='tight')
+                plt.savefig(acf_path_simul, dpi=300, bbox_inches='tight')
+                plt.close()
+
+                plt.figure(figsize=(6, 3))
+                plot_pacf(original_ts, max_lag=min(40, int(len(original_ts)/4)))
+                plt.suptitle("Autocorrelação Parcial Observação", fontsize=20)
+                plt.tight_layout()
+                plt.savefig(pacf_path_original, dpi=300, bbox_inches='tight')
+                plt.close()
+
+                plt.figure(figsize=(6, 3))
+                plot_pacf(simul_ts, max_lag=min(40, int(len(simul_ts) / 4)))
+                plt.suptitle("Autocorrelação Parcial Simulação", fontsize=20)
+                plt.tight_layout()
+                plt.savefig(pacf_path_simul, dpi=300, bbox_inches='tight')
                 plt.close()
 
                 # Escrever texto no PDF
@@ -584,11 +604,6 @@ if __name__ == \"__main__\":
                     f"KGE: {kge_value:.4f}",
                     f"",
                     f"",
-                    f"Tendência (Mann-Kendall):",
-                    f"",
-                    f"{mk_result['trend']}, Tau: {mk_result['tau']:.4f}, p-value: {mk_result['p']:.4f}",
-                    f"",
-                    f"",
                     f"Normalidade dos Resíduos:",
                     f"",
                     f" - D’Agostino: {dagostino_result['result']} (p-value={dagostino_result.get('p_value', 'N/A'):.4f})",
@@ -596,10 +611,24 @@ if __name__ == \"__main__\":
                     f" - Shapiro-Wilk: {shapiro_result['result']} (p-value={shapiro_result.get('p_value', 'N/A'):.4f})",
                     f"",
                     f"",
+                    f"Tendência (Mann-Kendall):",
+                    f"",
+                    f"Série Observada:",
+                    f"Resultado: {mk_result_original['trend']}, Tau: {mk_result_original['tau']:.4f}, p-value: {mk_result_original['p']:.4f}",
+                    f"",
+                    f"Simulação:",
+                    f"Resultado: {mk_result_simul['trend']}, Tau: {mk_result_simul['tau']:.4f}, p-value: {mk_result_simul['p']:.4f}",
+                    f"",
+                    f"",
                     f"Estacionariedade:",
                     f"",
-                    f" - ADF: {adf_result['result']} (Estatística={adf_result['adf_statistic']:.4f}, p-value={adf_result['p_value']:.4f})",
-                    f" - KPSS: {kpss_result['result']} (Estatística={kpss_result['kpss_statistic']:.4f}, p-value={kpss_result['p_value']:.4f})",
+                    f"ADF:",
+                    f" - Observação: {adf_original['result']} (Estatística={adf_original['adf_statistic']:.4f}, p-value={adf_original['p_value']:.4f})",
+                    f" - Simulação: {adf_simul['result']} (Estatística={adf_simul['adf_statistic']:.4f}, p-value={adf_simul['p_value']:.4f})",
+                    f"",
+                    f"KPSS:",
+                    f" - Observação: {kpss_original['result']} (Estatística={kpss_original['kpss_statistic']:.4f}, p-value={kpss_original['p_value']:.4f})",
+                    f" - Simulação: {kpss_simul['result']} (Estatística={kpss_simul['kpss_statistic']:.4f}, p-value={kpss_simul['p_value']:.4f})",
                 ]
 
                 for line in lines:
@@ -611,16 +640,40 @@ if __name__ == \"__main__\":
                     y_position -= line_height
 
                 # Inserir imagens dos gráficos
-                if y_position < 200:
+                if y_position < 400:  # Precisa de mais espaço para a grade
                     c.showPage()
                     y_position = height - margin
 
-                acf_img = ImageReader(acf_path)
-                pacf_img = ImageReader(pacf_path)
+                    # Carrega as 4 imagens
+                acf_img_original = ImageReader(acf_path_original)
+                acf_img_simul = ImageReader(acf_path_simul)
+                pacf_img_original = ImageReader(pacf_path_original)
+                pacf_img_simul = ImageReader(pacf_path_simul)
 
-                c.drawImage(acf_img, margin, y_position - 150, width=250, height=150)
-                c.drawImage(pacf_img, margin + 270, y_position - 150, width=250, height=150)
-                y_position -= 170
+                # Define as dimensões e posições da grade
+                plot_width = 240
+                plot_height = 160
+                h_spacing = 30
+                v_spacing = 20
+
+                x1 = margin
+                x2 = margin + plot_width + h_spacing
+
+                # Posição Y da primeira linha de gráficos
+                y_top_row = y_position - plot_height - 10
+                # Posição Y da segunda linha de gráficos
+                y_bottom_row = y_top_row - plot_height - v_spacing
+
+                # Desenha a primeira linha: [ACF Original] [ACF Simulada]
+                c.drawImage(acf_img_original, x1, y_top_row, width=plot_width, height=plot_height)
+                c.drawImage(acf_img_simul, x2, y_top_row, width=plot_width, height=plot_height)
+
+                # Desenha a segunda linha: [PACF Original] [PACF Simulada]
+                c.drawImage(pacf_img_original, x1, y_bottom_row, width=plot_width, height=plot_height)
+                c.drawImage(pacf_img_simul, x2, y_bottom_row, width=plot_width, height=plot_height)
+
+                # Atualiza a posição Y para o conteúdo seguinte
+                y_position = y_bottom_row - 20
 
                 # Linha separadora
                 c.line(margin, y_position, width - margin, y_position)

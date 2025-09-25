@@ -36,8 +36,13 @@ def kge(actual, predicted):
 # Mann-Kendall utilizando pymannkendall
 def mann_kendall_test(series):
     result = mk.original_test(series)
+    mapa_tendencia = {
+        'increasing': 'Crescente',
+        'decreasing': 'Decrescente',
+        'no trend': 'Sem Tendência'
+    }
     return {
-        "trend": result.trend,
+        "trend": mapa_tendencia.get(result.trend),
         "h": result.h,
         "p": result.p,
         "z": result.z,

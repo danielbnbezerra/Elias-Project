@@ -119,8 +119,6 @@ def predictions_to_timeseries(predictions_tensor, time_index):
     preds_array = predictions_tensor.squeeze(1).cpu().numpy()
     return TimeSeries.from_times_and_values(time_index, preds_array)
 
-def residuals_timeseries(valid_target_tensor, predictions_ts):
-    """Calcula resíduos como série temporal no formato Darts, usando a série inteira."""
-    actual = valid_target_tensor.squeeze(0).cpu().numpy()[:len(predictions_ts)]
-    residuals = actual - predictions_ts.values()
-    return TimeSeries.from_times_and_values(predictions_ts.time_index, residuals)
+def residuals_timeseries(valid_target_ts, predictions_ts):
+    """Calcula resíduos como série temporal no formato Darts, alinhando as séries."""
+    return valid_target_ts - predictions_ts

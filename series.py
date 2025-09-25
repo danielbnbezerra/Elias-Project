@@ -1,6 +1,7 @@
 import pandas as pd
 
 from darts import TimeSeries
+from sklearn.preprocessing import MinMaxScaler
 
 
 class GetSeries:
@@ -10,8 +11,14 @@ class GetSeries:
         self.prate_t_minus_3=None
         self.prate_t_minus_5=None
         self.flow=None
+        self.target_scaler = MinMaxScaler()
+        self.cov_scaler = MinMaxScaler()
+
         self.make_timeseries(series_files)
-        self.train_cov, self.valid_cov, self.train_target, self.valid_target= self.train_valid_split(self.train_percent)
+
+        (self.train_cov, self.valid_cov, self.train_target, self.valid_target,
+         self.scaled_train_cov, self.scaled_valid_cov, self.scaled_train_target,
+         self.scaled_valid_target, self.scaled_flow, self.scaled_prate_covariates)= self.train_valid_split(self.train_percent)
 
     def make_timeseries(self, series_file):
         max_window = 5  # maior janela
@@ -47,8 +54,31 @@ class GetSeries:
     def train_valid_split(self, train_percent):
 
         train_cov, valid_cov = self.prate_covariates.split_before(int(self.prate_covariates.n_timesteps * train_percent))
-        train_target, valid_target = self.flow.split_before(int(self.flow.n_timesteps * train_percent)) #Por padrão separando em 80% treino e 20% validação
-        return train_cov, valid_cov, train_target, valid_target
+        train_target, valid_target = self.flow.split_before(int(self.flow.n_timesteps * train_percent))
+
+        # Normaliza a série alvo (vazão)
+        # O normalizador é treinado (fit) apenas com os dados de treino
+        scaled_train_target_vals = self.target_scaler.fit_transform(train_target.values())
+        scaled_valid_target_vals = self.target_scaler.transform(valid_target.values())
+
+        # Normaliza as covariáveis (precipitação)
+        scaled_train_cov_vals = self.cov_scaler.fit_transform(train_cov.values())
+        scaled_valid_cov_vals = self.cov_scaler.transform(valid_cov.values())
+
+        # Recria os objetos TimeSeries com os dados normalizados, preservando os índices de tempo
+        scaled_train_target = TimeSeries.from_times_and_values(train_target.time_index, scaled_train_target_vals,
+                                                               columns=train_target.columns)
+        scaled_valid_target = TimeSeries.from_times_and_values(valid_target.time_index, scaled_valid_target_vals,
+                                                               columns=valid_target.columns)
+        scaled_train_cov = TimeSeries.from_times_and_values(train_cov.time_index, scaled_train_cov_vals,
+                                                            columns=train_cov.columns)
+        scaled_valid_cov = TimeSeries.from_times_and_values(valid_cov.time_index, scaled_valid_cov_vals,
+                                                            columns=valid_cov.columns)
+        scaled_flow = scaled_train_target.append(scaled_valid_target)
+        scaled_prate_covariates = scaled_train_cov.append(scaled_valid_cov)
+
+        return (train_cov, valid_cov, train_target, valid_target, scaled_train_cov,
+                scaled_valid_cov, scaled_train_target, scaled_valid_target, scaled_flow, scaled_prate_covariates)
 
     def update_date_interval(self, date_start, date_end):
 
@@ -69,7 +99,9 @@ class GetSeries:
 
         # Atualiza treino e validação, se já tiver sido definido
         if hasattr(self, "train_cov") and hasattr(self, "train_target"):
-            self.train_cov, self.valid_cov, self.train_target, self.valid_target = self.train_valid_split(self.train_percent)
+            (self.train_cov, self.valid_cov, self.train_target, self.valid_target,
+             self.scaled_train_cov, self.scaled_valid_cov, self.scaled_train_target,
+             self.scaled_valid_target, self.scaled_flow, self.scaled_prate_covariates) = self.train_valid_split(self.train_percent)
 
 # #Funções de Aquisição de Dados
 #
