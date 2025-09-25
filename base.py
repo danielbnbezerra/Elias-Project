@@ -154,12 +154,6 @@ class Application(ctk.CTk):
     def toggle_full_screen(self):
         self.attributes("-fullscreen", not self.attributes("-fullscreen"))
 
-    def zoom_in(self):
-        self.show_message("Info","Zoom In")
-
-    def zoom_out(self):
-        self.show_message("Info","Zoom Out")
-
     # Help menu commands
     def about(self):
         self.show_message("About","""MIT License
