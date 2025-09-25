@@ -11,8 +11,8 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from tkinter import messagebox
 from darts.utils.statistics import plot_residuals_analysis, plot_acf, plot_pacf
-from fontTools.ttLib.woff2 import bboxFormat
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.utils import ImageReader
@@ -285,34 +285,39 @@ class PlotWindow(ctk.CTkToplevel):
     def export_models(self):
         """
         Exporta cada modelo em self.models para arquivos .py, incluindo os imports necessários
-        para rodar cada modelo de forma independente, além dos parâmetros embutidos.
+        para rodar cada modelo de forma independente, além dos parâmetros embutidos e funções
+        avançadas como backtesting.
         """
-        for name, model in self.models.items():
-            base_name = name.lower()
-            weights_filename = f"{base_name}_weights.pth"
-            ckpt_filename = f"{base_name}_weights.pth.ckpt"
-            script_filename = f"{base_name}_model.py"
+        try:
+            for name, model in self.models.items():
+                base_name = name.lower()
+                weights_filename = f"{base_name}_weights.pth"
+                ckpt_filename = f"{base_name}_weights.pth.ckpt"
+                script_filename = f"{base_name}_model.py"
 
-            if name == "LHC":
-                # Salvar pesos do modelo LHC
-                torch.save(model.state_dict(), weights_filename)
+                if name == "LHC":
+                    # Salvar pesos do modelo LHC
+                    torch.save(model.state_dict(), weights_filename)
 
-                # Parâmetros usados no modelo
-                params = self.all_params[name]
-                params_repr = repr(params)
+                    # Parâmetros usados no modelo
+                    params = self.all_params[name]
+                    params_repr = repr(params)
 
-                # Script completo para o LHC, incluindo imports essenciais
-                lhc_complete_code = f"""import torch
+                    # Script completo para o LHC, incluindo imports e a nova função de backtest
+                    lhc_complete_code = f"""import torch
 import torch.nn as nn
 import numpy as np
+import pandas as pd
 import pytorch_lightning as pl
-from darts import TimeSeries
+from darts import TimeSeries, concatenate
 
-# Parâmetros usados no treinamento
+# --- Parâmetros e Definição do Modelo ---
+
+# Parâmetros usados no treinamento original
 params = {params_repr}
 
-# Classe LSTM usada pelo LHCModel
 class LSTMModel(nn.Module):
+    \"\"\"Arquitetura LSTM básica usada internamente pelo LHCModel.\"\"\"
     def __init__(self, input_size, hidden_size, num_layers, output_size, dropout=0.0):
         super().__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout)
@@ -325,8 +330,8 @@ class LSTMModel(nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
-# Classe LightningModule para o LHCModel
 class LHCModel(pl.LightningModule):
+    \"\"\"Classe LightningModule para o LHCModel.\"\"\"
     def __init__(self, params, input_size):
         super().__init__()
         self.save_hyperparameters(params)
@@ -345,72 +350,112 @@ class LHCModel(pl.LightningModule):
     def forward(self, x):
         return self.model(x)
 
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = self.loss_fn(y_hat, y[:, -1, :])
-        self.log('train_loss', loss, prog_bar=True, on_epoch=True)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        val_loss = self.loss_fn(y_hat, y[:, -1, :])
-        self.log('val_loss', val_loss, prog_bar=True, on_epoch=True)
-        return val_loss
-
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-# Funções auxiliares para processamento de dados e predição
-def series_to_batches(series_list, input_len, output_len):
-    \"\"\"Transforma séries em janelas (batches) de entrada/target para treino.\"\"\"
-    X, Y = [], []
-    for series in series_list:
-        arr = series.squeeze(0).numpy()
-        seq_len, n_features = arr.shape
-        max_start = seq_len - input_len - output_len + 1
-        for start in range(max_start):
-            x = arr[start : start + input_len]
-            y = arr[start + input_len : start + input_len + output_len, 0:1]
-            X.append(x)
-            Y.append(y)
-    inputs = torch.tensor(np.array(X, dtype=np.float32))
-    targets = torch.tensor(np.array(Y, dtype=np.float32))
-    return inputs, targets
+# --- Funções de Predição e Avaliação ---
 
-def recursive_predict(lit_model, start_series, covariates, input_len, n_predict, device):
-    \"\"\"Predição recursiva usando o modelo treinado.\"\"\"
+def recursive_predict(lit_model, initial_input_seq, future_covariates, n_predict, device):
+    \"\"\"
+    Realiza predição/simulação recursiva de forma robusta.
+    Esta é a função central de previsão usada tanto para forecasting quanto para backtesting.
+    \"\"\"
     lit_model.model.eval()
     predictions = []
-    input_seq = torch.cat([start_series[:, -input_len:, :], covariates[:, :input_len, :]], dim=2).to(device)
+    input_seq = initial_input_seq.to(device)
+    num_covariates = future_covariates.shape[2]
 
     with torch.no_grad():
         for i in range(n_predict):
-            out = lit_model.model(input_seq)
+            out = lit_model.model(input_seq)  # Shape: [1, 1]
             predictions.append(out.cpu().numpy())
 
-            if i + input_len < covariates.shape[1]:
-                next_cov = covariates[:, i+input_len : i+input_len+1, :]
+            if i < future_covariates.shape[1]:
+                next_cov = future_covariates[:, i:i + 1, :]
             else:
-                next_cov = torch.zeros(1, 1, covariates.shape[2]).to(device)
+                # Se acabarem as covariáveis futuras, preenche com zeros
+                next_cov = torch.zeros(1, 1, num_covariates).to(device)
 
+            # Cria o vetor de features para o próximo passo (vazão prevista + covariável futura)
             next_input = torch.cat([out.unsqueeze(2), next_cov], dim=2)
+
+            # Desliza a janela de entrada: remove o passo mais antigo e adiciona o novo
             input_seq = torch.cat([input_seq[:, 1:, :], next_input], dim=1)
 
     predictions = np.concatenate(predictions, axis=0)
     return torch.tensor(predictions)
+
+def backtest_simulation_lhc(model, scaled_flow_series, scaled_covariates_series, forecast_horizon=1, stride=1):
+    \"\"\"
+    Executa um backtesting manual para o modelo LHC, simulando historical_forecasts.
+    Esta função desliza uma janela sobre a série temporal, fazendo previsões passo a passo
+    para simular como o modelo performaria em dados nunca vistos.
+
+    Args:
+        model: O modelo LHC treinado e carregado.
+        scaled_flow_series (TimeSeries): A série de vazão completa, já normalizada.
+        scaled_covariates_series (TimeSeries): As covariáveis completas, já normalizadas.
+        forecast_horizon (int): O número de passos a prever em cada iteração (default=1).
+        stride (int): O número de passos para avançar a janela a cada iteração (default=1).
+
+    Returns:
+        TimeSeries: Uma única série temporal com as previsões do backtest.
+                    Atenção: Os valores retornados estão na escala normalizada,
+                    exigindo transformação inversa para análise.
+    \"\"\"
+    input_len = model.hparams.input_length
+    device = next(model.parameters()).device
+    all_forecasts = []
+
+    # O ponto de início é o índice após o primeiro período de aquecimento completo
+    start_index = input_len
+
+    # Loop que "desliza" pelo período de validação/teste
+    for i in range(start_index, len(scaled_flow_series) - forecast_horizon + 1, stride):
+        # 1. Pega a janela de "aquecimento" (warm-up) que antecede o ponto da previsão
+        history_start_index = i - input_len
+        history_end_index = i
+
+        warm_up_flow_tensor = torch.tensor(scaled_flow_series[history_start_index:history_end_index].values(),
+                                           dtype=torch.float32).unsqueeze(0)
+        warm_up_cov_tensor = torch.tensor(
+            scaled_covariates_series[history_start_index:history_end_index].values(),
+            dtype=torch.float32).unsqueeze(0)
+        initial_input_seq = torch.cat([warm_up_flow_tensor, warm_up_cov_tensor], dim=2)
+
+        # 2. Pega as covariáveis futuras conhecidas para o horizonte da previsão
+        future_cov_start_index = i
+        future_cov_end_index = i + forecast_horizon
+        future_covariates_tensor = torch.tensor(
+            scaled_covariates_series[future_cov_start_index:future_cov_end_index].values(),
+            dtype=torch.float32).unsqueeze(0)
+
+        # 3. Chama a função de previsão recursiva
+        pred_tensor = recursive_predict(
+            model,
+            initial_input_seq.to(device),
+            future_covariates_tensor.to(device),
+            n_predict=forecast_horizon,
+            device=device
+        )
+
+        # 4. Armazena o resultado com o timestamp correto
+        pred_start_time = scaled_flow_series.time_index[i]
+        time_index = pd.date_range(start=pred_start_time, periods=forecast_horizon,
+                                   freq=scaled_flow_series.freq_str)
+
+        forecast_ts = TimeSeries.from_times_and_values(time_index, pred_tensor.cpu().numpy())
+        all_forecasts.append(forecast_ts)
+
+    backtest_scaled = concatenate(all_forecasts)
+    return backtest_scaled
 
 def predictions_to_timeseries(predictions_tensor, time_index):
     \"\"\"Converte tensor de predições para TimeSeries do Darts.\"\"\"
     preds_array = predictions_tensor.squeeze(1).cpu().numpy()
     return TimeSeries.from_times_and_values(time_index, preds_array)
 
-def residuals_timeseries(valid_target_tensor, predictions_ts):
-    \"\"\"Calcula resíduos como série temporal no formato Darts.\"\"\"
-    actual = valid_target_tensor.squeeze(0).cpu().numpy()[:len(predictions_ts)]
-    residuals = actual - predictions_ts.values()
-    return TimeSeries.from_times_and_values(predictions_ts.time_index, residuals)
+# --- Funções Utilitárias para Carregamento ---
 
 def load_model(weights_path='{weights_filename}', input_size=None):
     \"\"\"
@@ -418,62 +463,50 @@ def load_model(weights_path='{weights_filename}', input_size=None):
 
     Args:
         weights_path: Caminho para o arquivo de pesos (.pth)
-        input_size: Tamanho da dimensão de entrada (número de features)
+        input_size: Tamanho da dimensão de entrada (número de features, ex: 3 para vazão + 2 covariáveis)
 
     Returns:
         Modelo LHC carregado e pronto para inferência
     \"\"\"
     if input_size is None:
-        raise ValueError(\"input_size deve ser fornecido para carregar o modelo\")
+        raise ValueError("input_size deve ser fornecido para carregar o modelo")
 
-    device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")
-    model = LHCModel(params, input_size)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # A input_size é inferida a partir dos dados, aqui precisa ser explícita
+    model = LHCModel(params, input_size=input_size) 
     model.load_state_dict(torch.load(weights_path, map_location=device))
     model.to(device)
     model.eval()
     return model
 
-def predict_with_model(model, train_target, covariates, input_len, n_predict, time_index):
-    \"\"\"
-    Função de conveniência para fazer predições com o modelo carregado.
+if __name__ == "__main__":
+    print("Modelo LHC - Arquivo de exportação")
+    print(f"Parâmetros usados: {{params}}")
+    print("\\nFunções disponíveis:")
+    print(" - load_model(weights_path, input_size): Carrega o modelo treinado.")
+    print(" - recursive_predict(...): Realiza uma única previsão para o futuro.")
+    print(" - backtest_simulation_lhc(model, ...): Executa uma simulação histórica completa.")
+    # Exemplo de como usar:
+    # 1. Carregue suas séries temporais (flow, covariates) com Darts e normalize-as.
+    # 2. n_features = series_covariates.width + 1
+    # 3. lhc = load_model(input_size=n_features)
+    # 4. backtest_results = backtest_simulation_lhc(lhc, scaled_flow, scaled_covariates)
+    # 5. Lembre-se de aplicar a transformação inversa (scaler.inverse_transform) nos resultados.
+"""
 
-    Args:
-        model: Modelo LHC carregado
-        train_target: Dados de treino (tensor)
-        covariates: Covariáveis para predição (tensor)  
-        input_len: Tamanho da janela de entrada
-        n_predict: Número de passos a prever
-        time_index: Índice temporal para a série resultante
+                    with open(script_filename, "w", encoding="utf-8") as f:
+                        f.write(lhc_complete_code)
 
-    Returns:
-        TimeSeries com as predições
-    \"\"\"
-    device = next(model.parameters()).device
-    predictions_tensor = recursive_predict(
-        model, train_target, covariates, input_len, n_predict, device
-    )
-    return predictions_to_timeseries(predictions_tensor, time_index)
+                elif name in ("N-BEATS", "N-HiTS"):
+                    # Salvar modelo DARTS
+                    model.save(weights_filename)
 
-if __name__ == \"__main__\":
-    print(\"Modelo LHC - Arquivo de exportação\")
-    print(f\"Parâmetros usados: {{params}} \")
-    print(\"Use load_model() para carregar o modelo treinado\")
-    """
+                    # Parâmetros usados
+                    params = self.all_params[name]
+                    params_repr = repr(params)
 
-                with open(script_filename, "w", encoding="utf-8") as f:
-                    f.write(lhc_complete_code)
-
-            elif name in ("N-BEATS", "N-HiTS"):
-                # Salvar modelo DARTS
-                model.save(weights_filename)
-
-
-                # Parâmetros usados
-                params = self.all_params[name]
-                params_repr = repr(params)
-
-                # Importações necessárias para modelos DARTS
-                load_code = f"""import torch
+                    # Importações necessárias para modelos DARTS
+                    load_code = f"""import torch
 from darts.models import {type(model).__name__}
 
 # Parâmetros usados no treinamento
@@ -481,43 +514,43 @@ params = {params_repr}
 
 def load_model(weights_path='{weights_filename}'):
     \"\"\"
-    Carrega o modelo {name} a partir dos pesos salvos.
+    Carrega o modelo {name} a partir do arquivo salvo.
 
     Args:
-        weights_path: Caminho para o arquivo de pesos
+        weights_path: Caminho para o arquivo do modelo
 
     Returns:
         Modelo {name} carregado e pronto para uso
     \"\"\"
-    # Criar modelo com os parâmetros originais
-    model = {type(model).__name__}(
-        input_chunk_length=params.get('input_chunk_length'),
-        output_chunk_length=params.get('output_chunk_length'),
-        n_epochs=params.get('n_epochs', 1),
-        random_state=params.get('random_state', 42),
-        **{{k: v for k, v in params.items() if k not in ['input_chunk_length', 'output_chunk_length', 'n_epochs', 'random_state']}}
-    )
-
-    # Carregar pesos salvos
-    model = model.load(weights_path)
+    # O método .load da Darts carrega a arquitetura e os pesos.
+    model = {type(model).__name__}.load(weights_path)
     return model
 
-if __name__ == \"__main__\":
-    print(\"Modelo {name} - Arquivo de exportação\")
-    print(f\"Parâmetros usados: {{params}} \")
-    print(\"Use load_model() para carregar o modelo treinado\")
-    """
+if __name__ == "__main__":
+    print("Modelo {name} - Arquivo de exportação")
+    print(f"Parâmetros usados: {{params}}")
+    print("Use load_model() para carregar o modelo treinado")
+    print("Modelos Darts possuem o método .historical_forecasts() para backtesting.")
+"""
 
-                with open(script_filename, "w", encoding="utf-8") as f:
-                    f.write(load_code)
+                    with open(script_filename, "w", encoding="utf-8") as f:
+                        f.write(load_code)
 
-            else:
-                print(f"Exportação para modelo {name} não implementada.")
+                else:
+                    print(f"Exportação para modelo {name} não implementada.")
 
-            if os.path.exists(ckpt_filename):
-                os.remove(ckpt_filename)
+                if os.path.exists(ckpt_filename):
+                    os.remove(ckpt_filename)
 
-        print("Modelos exportados com sucesso!")
+            messagebox.showinfo("Exportação Concluída",
+                                "Modelos exportados com sucesso!",
+                                parent=self)
+        except Exception as e:
+            messagebox.showerror("Erro na Exportação",
+                                 f"Ocorreu um erro ao exportar os modelos: {e}",
+                                 parent=self)
+
+
 
     def generate_report_pdf(self, name_file=f"Relatório Completo"):
         filename = self.get_unique_filename(name_file,"pdf")
