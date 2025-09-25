@@ -136,11 +136,6 @@ class Application(ctk.CTk):
         file_menu.add_separator()
         file_menu.add_command(label="Sair", command=self.confirm_exit)
 
-        # View menu
-        view_menu = tk.Menu(main_menu, tearoff=0)
-        main_menu.add_cascade(label="Visualizar", menu=view_menu)
-        view_menu.add_checkbutton(label="Tela Cheia", command=self.toggle_full_screen)
-
         # Help menu
         help_menu = tk.Menu(main_menu, tearoff=0)
         main_menu.add_cascade(label="Ajuda", menu=help_menu)
@@ -149,10 +144,6 @@ class Application(ctk.CTk):
     # File menu commands
     def confirm_exit(self):
         ConfirmExitWindow(self)
-
-    # View menu commands
-    def toggle_full_screen(self):
-        self.attributes("-fullscreen", not self.attributes("-fullscreen"))
 
     # Help menu commands
     def about(self):
