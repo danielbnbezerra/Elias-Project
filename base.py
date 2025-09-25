@@ -262,6 +262,7 @@ OTHER DEALINGS IN THE SOFTWARE.""")
             return False
 
     def show_parameters(self):
+        cleanup_darts_logs()
         # Pegando os modelos selecionados
         selected_models = [model for i, model in enumerate(self.possible_windows) if self.checkboxes[i]["var"].get()]
         if self.check_dates():

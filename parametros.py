@@ -63,16 +63,6 @@ class Tooltip:
             self.tooltip_window.geometry(f"+{x}+{y}")
 
 class ConfirmExitWindow(ctk.CTkToplevel):
-    @staticmethod
-    def cleanup_darts_logs():
-        folders_to_delete = ["darts_logs", "checkpoints"]
-        for folder in folders_to_delete:
-            if os.path.exists(folder):
-                try:
-                    shutil.rmtree(folder)
-                except Exception as e:
-                    print(f"Erro ao remover pasta {folder}: {e}")
-
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Sair do Aplicativo?")
@@ -93,7 +83,7 @@ class ConfirmExitWindow(ctk.CTkToplevel):
         no_button.grid(row=0, column=1, padx=10)
 
     def on_closing(self):
-        self.cleanup_darts_logs()
+        cleanup_darts_logs()
         self.parent.quit()  # fecha a janela
 
     def centralize_window(self, width=320, height=150):
@@ -1224,3 +1214,12 @@ class DataWindow(ctk.CTkToplevel):
             self.callback(params)
 
         self.destroy()  # fecha a janela
+
+def cleanup_darts_logs():
+    folders_to_delete = ["darts_logs", "checkpoints"]
+    for folder in folders_to_delete:
+        if os.path.exists(folder):
+            try:
+                shutil.rmtree(folder)
+            except Exception as e:
+                print(f"Erro ao remover pasta {folder}: {e}")

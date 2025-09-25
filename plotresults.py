@@ -119,21 +119,14 @@ class PlotWindow(ctk.CTkToplevel):
 
         fig = plt.figure(figsize=(20,8))
         ax = fig.add_subplot(111)
-
+        locator = mdates.AutoDateLocator(minticks=12, maxticks=24)
+        formatter = mdates.ConciseDateFormatter(locator)
         # Séries
         if selected_data_indices.get("Séries"):
             for name, series_obj in selected_data_indices["Séries"].items():
                 ax.plot(series_obj.time_index, series_obj.values(), label=name)
-            series_size = len(self.series["Vazão"])//365
-            if series_size > 5:
-                ticks = pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(), freq='YS')
-                fmt = '%Y'
-            else:
-                ticks = pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(),
-                                      freq='MS')
-                fmt = '%m/%y'
-            ax.set_xticks(ticks)
-            ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+            ax.xaxis.set_major_formatter(formatter)
+            ax.xaxis.set_major_locator(locator)
             ax.tick_params(axis='x', labelsize=22, rotation=45)
             ax.tick_params(axis='y', labelsize=22)
             ax.set_xlabel('Tempo', fontsize=20)
@@ -149,17 +142,8 @@ class PlotWindow(ctk.CTkToplevel):
             # Para cada previsão, usa seu time_index para alinhamento correto no tempo
             for name, pred_series in selected_data_indices["Previsões"].items():
                 ax.plot(pred_series.time_index, pred_series.values(), label=f"{name} - Previsão")
-            series_size = len(self.series["Vazão"]) // 365
-            if series_size > 5:
-                ticks = pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(),
-                                  freq='YS')
-                fmt = '%Y'
-            else:
-                ticks = pd.date_range(start=self.series["Vazão"].start_time(), end=self.series["Vazão"].end_time(),
-                                  freq='MS')
-                fmt = '%m/%y'
-            ax.set_xticks(ticks)
-            ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+            ax.xaxis.set_major_formatter(formatter)
+            ax.xaxis.set_major_locator(locator)
             ax.tick_params(axis='x', labelsize=22, rotation=45)
             ax.tick_params(axis='y', labelsize=22)
             ax.set_xlabel('Tempo', fontsize=20)
@@ -173,8 +157,6 @@ class PlotWindow(ctk.CTkToplevel):
             common_index = self.series["Vazão"].time_index
             for simul_series in selected_data_indices["Simulações"].values():
                 common_index = common_index.intersection(simul_series.time_index)
-            size_series = len(common_index)//365
-            # Plota série flow inteira com tempo original para comparação
             flow_aligned = self.series["Vazão"][common_index]
             ax.plot(flow_aligned.time_index, flow_aligned.values(), label="Série Observada")
 
@@ -182,14 +164,8 @@ class PlotWindow(ctk.CTkToplevel):
             for name, simul_series in selected_data_indices["Simulações"].items():
                 simul_series_aligned = simul_series[common_index]
                 ax.plot(simul_series_aligned.time_index, simul_series_aligned.values(), label=f"{name} - Simulação")
-            if size_series > 5:
-                ticks = pd.date_range(start=flow_aligned.start_time(), end=flow_aligned.end_time(), freq='YS')
-                fmt = '%Y'
-            else:
-                ticks = pd.date_range(start=flow_aligned.start_time(), end=flow_aligned.end_time(), freq='MS')
-                fmt = '%m/%y'
-            ax.set_xticks(ticks)
-            ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+            ax.xaxis.set_major_formatter(formatter)
+            ax.xaxis.set_major_locator(locator)
             ax.tick_params(axis='x', labelsize=22, rotation=45)
             ax.tick_params(axis='y', labelsize=22)
             ax.set_xlabel('Tempo', fontsize=20)
