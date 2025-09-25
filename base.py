@@ -55,9 +55,13 @@ class Application(ctk.CTk):
         self.choose_model_button = None
 
         #Título Principal
-        self.label_title = ctk.CTkLabel(master=self.main_selected_options_frame, text="Bem vindo ao Elias.", font=("Arial", 18))
-        self.label_title.grid(row=0, column=0, pady=30)
-
+        self.label_title_frame = ctk.CTkFrame(master= self.main_selected_options_frame, fg_color='transparent')
+        self.label_title_frame.grid(row=0, column=0, pady=30)
+        self.label_title = ctk.CTkLabel(master=self.label_title_frame, text="Bem vindo ao Elias!", font=("Arial", 18))
+        self.label_title.grid(row=0, column=0, pady=10)
+        self.label_subtitle = ctk.CTkLabel(master=self.label_title_frame, text="Importe os dados para começar.",
+                                        font=("Arial", 14))
+        self.label_subtitle.grid(row=1, column=0, pady=5)
 
     def display_options(self,option):
 
