@@ -21,7 +21,7 @@ Elias é uma aplicação de desktop desenvolvida em Python para prognóstico de 
 
 ## Tecnologias Utilizadas
 
-- Python 3.10+
+- Python 3.11+
 - CustomTkinter, Tkinter
 - Darts, PyTorch, PyTorch Lightning
 - Pandas, NumPy, Scikit-learn
