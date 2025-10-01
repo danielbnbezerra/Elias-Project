@@ -32,4 +32,5 @@ Elias é uma aplicação de desktop desenvolvida em Python para prognóstico de 
 
 ## Instalação
 
-Recomenda-se o uso de ambiente virtual.
+`pip install -r requirements.txt`
+`pyinstaller -F --noconsole C:\Users\Usuário\PycharmProjects\Elias-Project\main.py --hidden-import pytorch_lightning --add-data="D:\Dan\Programas\miniconda3\envs\tcc\Lib\site-packages\pytorch_lightning\version.info;pytorch_lightning" --add-data="D:\Dan\Programas\miniconda3\envs\tcc\Lib\site-packages\lightning_fabric\version.info;lightning_fabric" --exclude-module xgboost`
