@@ -1,6 +1,6 @@
-# Elias: Ferramenta de Prognóstico Hidrológico com Redes Neurais
+# Elias: Ferramenta de Simulação Hidrológica com Redes Neurais
 
-Elias é uma aplicação de desktop desenvolvida em Python para prognóstico de vazão em bacias hidrográficas. Através de uma interface gráfica intuitiva, permite a pesquisadores e engenheiros carregarem séries temporais próprias, configurar, treinar e avaliar modelos de redes neurais avançados sem necessidade de programar.
+Elias é uma aplicação de desktop desenvolvida em Python para simulação de vazão em bacias hidrográficas. Através de uma interface gráfica intuitiva, permite a pesquisadores e engenheiros carregarem séries temporais próprias, configurar, treinar e avaliar modelos de redes neurais avançados sem necessidade de programar.
 
 ---
 
@@ -30,7 +30,7 @@ Elias é uma aplicação de desktop desenvolvida em Python para prognóstico de 
 
 ---
 
-## Instalação
+## Instalação e Geração de Executável
 
 ```bash
 pip install -r requirements.txt
