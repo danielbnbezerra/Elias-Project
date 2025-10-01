@@ -175,21 +175,52 @@ class ModelRunWindow(ctk.CTkToplevel):
                     """
             # Parâmetros do modelo e da série
             input_len = model.hparams.input_length
+            output_len = model.hparams.output_length
             device = model.device
             forecast_horizon = 1
             stride = 1
 
+            original_params = self.all_params["LHC"]
             # Usaremos as séries completas normalizadas para o processo de slicing
 
 
             # Ponto de início: o índice logo após o fim do período de treino
-            start_index = input_len
+            start_index = input_len + output_len
 
             all_forecasts = []
 
             # Loop que "desliza" pelo período de validação
             for i in range(start_index, len(scaled_flow) - forecast_horizon + 1, stride):
                 # --- Preparação dos Dados para cada Previsão ---
+                # 1. Define os dados de treino para a janela expansível (do início até o ponto atual)
+                train_flow_slice = scaled_flow[:i]
+                train_cov_slice = scaled_covariates[:i]
+
+                # 2. Prepara os dados de treino para o formato de batches
+                train_flow_tensor = torch.tensor(train_flow_slice.values(), dtype=torch.float32).unsqueeze(0)
+                train_cov_tensor = torch.tensor(train_cov_slice.values(), dtype=torch.float32).unsqueeze(0)
+                # Concatena os tensores na dimensão das features (dim=2), como no treino original
+                train_input_tensor = torch.cat([train_flow_tensor, train_cov_tensor], dim=2)
+                inputs, targets = series_to_batches([train_input_tensor.cpu()], input_len, output_len)
+                inputs = inputs.to(device)
+                targets = targets.to(device)
+
+                train_dataset = TensorDataset(inputs, targets)
+                train_loader = DataLoader(train_dataset, batch_size=original_params['batch_size'], shuffle=True)
+
+                # 3. Cria e treina um NOVO modelo com os dados atuais
+                current_model = LHCModel(original_params, inputs.shape[2])
+
+                # Configura um trainer leve para o retreinamento
+                trainer = pl.Trainer(
+                    max_epochs=original_params['n_epochs'],  # Usa as épocas originais
+                    enable_progress_bar=False,
+                    enable_model_summary=False,
+                    logger=False,
+                    callbacks=[]  # Sem callbacks para acelerar
+                )
+                trainer.fit(current_model, train_loader)
+                current_model.to(device)  # Garante que o modelo está no dispositivo correto
 
                 # 1. Pega a janela de "aquecimento" (warm-up) que antecede o ponto da previsão
                 history_start_index = i - input_len
@@ -211,18 +242,14 @@ class ModelRunWindow(ctk.CTkToplevel):
 
                 # --- Chamada da Função de Previsão ---
 
-                # Chama sua função original para prever apenas o horizonte desejado (ex: 1 passo)
                 pred_tensor = recursive_predict(
-                    model,
+                    current_model,
                     initial_input_seq.to(device),
                     future_covariates_tensor.to(device),
                     n_predict=forecast_horizon,
                     device=device
                 )
 
-                # --- Armazenamento do Resultado ---
-
-                # Converte o tensor previsto para um objeto TimeSeries com a data correta
                 pred_start_time = scaled_flow.time_index[i]
                 time_index = pd.date_range(start=pred_start_time, periods=forecast_horizon,
                                            freq=scaled_flow.freq)
@@ -237,16 +264,14 @@ class ModelRunWindow(ctk.CTkToplevel):
 
         elif model_type in ['nbeats', 'nhits']:
 
-            # --- NOVO BLOCO: Backtesting com historical_forecasts ---
             start_point = self.model.input_chunk_length
-            # O backtest deve ser executado nos dados normalizados, que foi como o modelo treinou
             backtest_scaled = self.model.historical_forecasts(
                 series=scaled_flow,  # Série completa normalizada
                 past_covariates=scaled_covariates,  # Covariáveis completas normalizadas
-                start=start_point,  # Começa a prever DEPOIS do treino
+                start=start_point,
                 forecast_horizon=1,  # Gera uma previsão de 1 passo de cada vez (mais rigoroso)
                 stride=1,  # Avança de 1 em 1 dia
-                retrain=False,  # Usa o modelo já treinado, não retreina a cada passo (muito mais rápido)
+                retrain=True,  # Usa o modelo já treinado, não retreina a cada passo (muito mais rápido)
                 verbose=False
             )
 
