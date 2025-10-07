@@ -188,8 +188,8 @@ class BasicWindow(ctk.CTkToplevel):
             return False
 
 class LHCModelWindow(BasicWindow):
-    def __init__(self, series, index, remaining_models, *args, **kwargs):
-        super().__init__(series, index, remaining_models,*args, **kwargs)
+    def __init__(self, series, index, remaining_models,configs=None, *args, **kwargs):
+        super().__init__(series, index, remaining_models,configs,*args, **kwargs)
         self.title("LHC - Escolha os Parâmetros")
         self.centralize_window(760, 200)
         self.option_frame.place(x=0, y=0, relwidth=0.25, relheight=1)
@@ -461,8 +461,8 @@ class LHCModelWindow(BasicWindow):
             return False
 
 class NModelWindow(BasicWindow):
-    def __init__(self,series, index, remaining_models, *args, **kwargs):
-        super().__init__(series, index, remaining_models, *args, **kwargs)
+    def __init__(self,series, index, remaining_models, configs=None,*args, **kwargs):
+        super().__init__(series, index, remaining_models,configs, *args, **kwargs)
 
         # Random State
         self.random_state = 42
@@ -560,8 +560,8 @@ class NModelWindow(BasicWindow):
 
 
 class NBEATSModelWindow(NModelWindow):
-    def __init__(self, series, index, remaining_models, *args, **kwargs):
-        super().__init__(series, index, remaining_models, *args, **kwargs)
+    def __init__(self, series, index, remaining_models, configs=None,*args, **kwargs):
+        super().__init__(series, index, remaining_models, configs,*args, **kwargs)
         self.title("N-BEATS - Escolha os Parâmetros")
         self.centralize_window(1070,200)
 
@@ -833,8 +833,8 @@ class NHiTSModelWindow(NModelWindow):
         except Exception:
             return None
 
-    def __init__(self, series, index, remaining_models, *args, **kwargs):
-        super().__init__(series, index, remaining_models, *args, **kwargs)
+    def __init__(self, series, index, remaining_models, configs=None,*args, **kwargs):
+        super().__init__(series, index, remaining_models, configs,*args, **kwargs)
         self.title("N-HiTS - Escolha os Parâmetros")
         self.centralize_window(1090,200)
 

@@ -264,6 +264,7 @@ OTHER DEALINGS IN THE SOFTWARE.""")
     def show_parameters(self):
         cleanup_darts_logs()
         # Pegando os modelos selecionados
+        self.data_intervals = []
         selected_models = [model for i, model in enumerate(self.possible_windows) if self.checkboxes[i]["var"].get()]
         if self.check_dates():
             self.timeseries.update_date_interval(self.data_intervals[0],self.data_intervals[1])
@@ -290,7 +291,7 @@ OTHER DEALINGS IN THE SOFTWARE.""")
             return
         model_name_window = selected_models[index]["window"]
         if self.new_window is None or not self.new_window.winfo_exists():
-           self.new_window = model_name_window(self.timeseries, index+1, selected_models)
+           self.new_window = model_name_window(self.timeseries, index+1, selected_models, configs=[])
         else:
            self.new_window.focus()
 

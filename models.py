@@ -420,6 +420,8 @@ class ModelRunDartsWindow(ModelRunWindow):
             "enable_progress_bar": False
         }
 
+        self.params["force_reset"] = True
+
         self.model = self.model_class(**self.params)
 
         # Inicia o treinamento em uma thread para não travar a GUI
